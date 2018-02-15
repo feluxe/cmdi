@@ -1,0 +1,24 @@
+### Misc. ###
+INFO.fmw.md
+.cache/
+
+### Python ###
+__pycache__/
+.env
+*.pyc
+
+### Wheels ###
+/build/
+dist/
+cmdi.egg-info/
+
+### Intellij ###
+*.iml
+.idea/
+
+### Vim ###
+.swp
+
+### testing ###
+**/tmp/*
+
