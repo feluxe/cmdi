@@ -12,7 +12,7 @@
 [] should leverage asyncio
 """
 
-from typing import NamedTuple, Union, TextIO, Tuple
+from typing import NamedTuple, Union, TextIO, Tuple, Optional
 from contextlib import redirect_stdout, redirect_stderr
 import io
 import sys
@@ -52,6 +52,27 @@ class CmdResult(NamedTuple):
     color: int
     out: TextIO
     err: TextIO
+
+
+class CustomCmdResult:
+    def __init__(
+        self,
+        val: Optional[any] = None,
+        code: Optional[int] = None,
+        name: Optional[str] = None,
+        status: Optional[str] = None,
+        color: Optional[int] = None,
+        out: Optional[TextIO] = None,
+        err: Optional[TextIO] = None,
+
+    ):
+        self.val = val
+        self.code = code
+        self.name = name
+        self.status = status
+        self.color = color
+        self.out = out
+        self.err = err
 
 
 def print_title(
