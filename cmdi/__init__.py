@@ -59,20 +59,14 @@ class CustomCmdResult:
         self,
         val: Optional[any] = None,
         code: Optional[int] = None,
-        name: Optional[str] = None,
         status: Optional[str] = None,
         color: Optional[int] = None,
-        out: Optional[TextIO] = None,
-        err: Optional[TextIO] = None,
 
     ):
         self.val = val
         self.code = code
-        self.name = name
         self.status = status
         self.color = color
-        self.out = out
-        self.err = err
 
 
 def print_title(
@@ -135,6 +129,16 @@ def command(decorated_func):
 
                     if isinstance(return_val, CmdResult):
                         result = return_val
+                    elif isinstance(return_val, CustomCmdResult):
+                        result = CmdResult(
+                            val=return_val.val,
+                            code=return_val.code,
+                            status=return_val.status,
+                            color=return_val.color,
+                            name=name,
+                            out=out,
+                            err=err,
+                        )
                     else:
                         result = CmdResult(
                             val=return_val,
