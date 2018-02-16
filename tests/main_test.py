@@ -10,6 +10,17 @@ from cmdi import command, CmdResult
 from sty import fg, rs
 
 
+def _get_title(
+    string: str,
+    color: bool = True,
+):
+    sep = '\n' + (len(string) + 5) * '-'
+    if color:
+        return f'\n{fg.cyan}Cmd: {string}{sep}{fg.rs}'
+    else:
+        return f'\nCmd: {string}{sep}'
+
+
 @command
 def print_stdout_stderr(
     **cmdargs,
@@ -31,7 +42,7 @@ def test_print_stdout_stderr(capfd):
     out, err = capfd.readouterr()
 
     # Check stdout.
-    title: str = f'\n{fg.cyan}Run: {func_name}{fg.rs}\n'
+    title: str = _get_title(func_name)
     a: str = 'foo stdout\n'
     status: str = f'{fg.green}{func_name}: Ok{fg.rs}'
     assert title in out
@@ -77,7 +88,7 @@ def test_redirect_stdout_stderr_to_io(capfd):
     assert result.val is None
 
     # Check result out.
-    title: str = f'\n{fg.cyan}Run: {func_name}{fg.rs}\n'
+    title: str = _get_title(func_name)
     a: str = 'foo stdout\n'
     status: str = f'{fg.green}{func_name}: Ok{fg.rs}'
     assert title in result.out.getvalue()
@@ -105,7 +116,7 @@ def test_no_color(capfd):
     out, err = capfd.readouterr()
 
     # Check stdout.
-    title: str = f'\nRun: {func_name}\n'
+    title: str = _get_title(func_name, color=False)
     a: str = 'foo stdout\n'
     status: str = f'Ok'
     assert title in out
