@@ -74,10 +74,11 @@ def print_title(
     color: bool = True,
     stdout: TextIO = sys.stdout,
 ):
+    sep = '\n' + len(string) * '-'
     if color:
-        string = f'\n{fg.cyan}Run: {string}{fg.rs}\n'
+        string = f'\n{fg.cyan}Run: {string}{sep}{fg.rs}'
     else:
-        string = f'\nRun: {string}\n'
+        string = f'\nRun: {string}{sep}'
     print(string, file=stdout)
 
 
