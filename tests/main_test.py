@@ -135,3 +135,37 @@ def test_no_color(capfd):
 
     # Check result status.
     assert result.status == status
+
+
+def stage_verbose_false():
+    return print_stdout_stderr(_verbose=False)
+
+
+def test_verbose_false(capfd):
+    func_name = 'print_stdout_stderr'
+
+    result = stage_verbose_false()
+
+    out, err = capfd.readouterr()
+
+    # Check stdout.
+    title: str = _get_title(func_name)
+    a: str = 'foo stdout\n'
+    status: str = f'{fg.green}{func_name}: Ok{fg.rs}'
+    assert title not in out
+    assert a in out
+    assert status not in out
+
+    # Check stderr.
+    a: str = 'bar stderr'
+    assert a in err
+
+    # Check result type.
+    assert type(result) == cmdi.CmdResult
+
+    # Check result val.
+    assert result.val is None
+
+    # Check result status.
+    status: str = f'Ok'
+    assert result.status == status

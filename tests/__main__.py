@@ -48,3 +48,9 @@ print_section(main_test.stage_no_color)
 print_flag('[runtime]')
 result = main_test.stage_no_color()
 print_result(result)
+
+
+print_section(main_test.test_verbose_false)
+print_flag('[runtime]')
+result = main_test.stage_verbose_false()
+print_result(result)

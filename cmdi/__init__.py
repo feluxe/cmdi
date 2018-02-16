@@ -124,6 +124,7 @@ def command(decorated_func):
     def command_wrapper(*args, **kwargs) -> CmdResult:
         """"""
         catch_err = kwargs.get('_catch_err', True)
+        verbose = kwargs.get('_verbose', True)
         colorful = kwargs.get('_color', True)
         out = kwargs.get('_out') or sys.stdout
         err = kwargs.get('_err') or sys.stderr
@@ -132,11 +133,12 @@ def command(decorated_func):
         with redirect_stdout(out):
             with redirect_stderr(err):
                 """"""
-                print_title(
-                    name,
-                    color=colorful,
-                    stdout=out
-                )
+                if verbose:
+                    print_title(
+                        name,
+                        color=colorful,
+                        stdout=out
+                    )
 
                 try:
                     return_val = decorated_func(*args, **kwargs)
@@ -180,10 +182,11 @@ def command(decorated_func):
                         err=err,
                     )
 
-                print_status(
-                    result,
-                    color=colorful,
-                )
+                if verbose:
+                    print_status(
+                        result,
+                        color=colorful,
+                    )
 
                 return result
 
