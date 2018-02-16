@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a88d72b96bce7d281313770f117195ddb9727cbf2326f73ee7e4069cfbca23bd"
+            "sha256": "f047f079b312ca8570f39f3efee5328858562379afedc985e50c6562122929fd"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
@@ -44,11 +44,47 @@
             ],
             "version": "==17.4.0"
         },
+        "buildlib": {
+            "hashes": [
+                "sha256:f95bbd94b86fc76ca6a7012bd379651c947845b701950da25cf492215e788c29"
+            ],
+            "version": "==2.0.0b5"
+        },
+        "cmdi": {
+            "hashes": [
+                "sha256:f8e05af0d2236193d6ed3e8da8295d9b6a69f4caddab3c495aef2f7304f7249b"
+            ],
+            "version": "==0.0.8"
+        },
+        "docopt": {
+            "hashes": [
+                "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"
+            ],
+            "version": "==0.6.2"
+        },
+        "headlines": {
+            "hashes": [
+                "sha256:d027928d040ff13ee190fdcf8db0b8a61b9829e2177ce2da606bf649af44845a"
+            ],
+            "version": "==0.0.0a5"
+        },
         "pluggy": {
             "hashes": [
                 "sha256:7f8ae7f5bdf75671a718d2daf0a64b7885f74510bcd98b1a0bb420eb9a9d0cff"
             ],
             "version": "==0.6.0"
+        },
+        "prmt": {
+            "hashes": [
+                "sha256:b88146d20eb1755dd36b62e92eef5b7dbe237b8d95ef0d65a61aa1b2becc0a27"
+            ],
+            "version": "==0.0.0a8"
+        },
+        "processy": {
+            "hashes": [
+                "sha256:ec43b64c60300d809b6d37183669025429efeb994c59dbc351afa3236d3b47c3"
+            ],
+            "version": "==1.0.7"
         },
         "py": {
             "hashes": [

@@ -15,6 +15,8 @@ sty = "*"
 "ruamel.yaml" = "*"
 wheel = "*"
 pytest = "*"
+buildlib = "==2.0.0-beta.5"
+docopt = "*"
 
 
 [requires]
