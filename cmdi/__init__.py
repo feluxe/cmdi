@@ -12,7 +12,7 @@
 [] should leverage asyncio
 """
 
-from typing import NamedTuple, Union, TextIO, Tuple, Optional
+from typing import NamedTuple, Union, TextIO, Tuple, Optional, Iterable, List
 from contextlib import redirect_stdout, redirect_stderr
 import io
 import sys
@@ -86,6 +86,7 @@ def print_status(
     result: CmdResult,
     color: bool = True,
 ):
+    """"""
     if not isinstance(result, CmdResult):
         raise TypeError('Error: param "result" must be of type: "CmdResult".')
 
@@ -103,6 +104,18 @@ def print_status(
             print(f'{r.name}: {r.status}', file=r.out)
         else:
             print(f'{r.name}: {r.status}', file=r.err)
+
+
+def print_summary(results: List[CmdResult], color=True):
+    if color:
+        print(fg.cyan + 'Summary:' + 8 * '-' + fg.rs)
+    else:
+        print('Summary:' + 8 * '-')
+    if isinstance(results, CmdResult):
+        print_status(results, color)
+    if isinstance(results, Iterable):
+        for item in results:
+            print_status(item, color)
 
 
 def command(decorated_func):
