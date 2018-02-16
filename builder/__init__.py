@@ -1,9 +1,6 @@
-import sys
-import os
 from typing import Union
-from cmdi import CmdResult, print_summary
+from cmdi import CmdResult, print_summary as print_summary_
 from buildlib import yaml, semver, build, git
-
 
 CFG_FILE = 'Project'
 CFG = yaml.loadfile(
@@ -44,50 +41,57 @@ def bump_version() -> Union[CmdResult, None]:
     )
 
 
-def bump_git() -> None:
+def bump_git(
+    ask_bump_version=True,
+    ask_bump_any_git=False,
+    print_summary=True,
+):
     """"""
-    results = []
     version_bumped = False
 
-    if build.prompt.should_update_version(
+    if ask_bump_version and build.prompt.should_update_version(
         default='y',
     ):
         bump_version()
         version_bumped = True
 
     seq_settings = git.seq.get_settings_from_user(
-        should_tag_default=version_bumped,
-        should_bump_any=True,
         version=CFG.get('version'),
+        ask_bump_any_git=ask_bump_any_git,
+        should_tag_default_val=version_bumped,
     )
 
-    results.extend(git.seq.bump_sequence(seq_settings))
+    results = git.seq.bump_sequence(seq_settings)
 
-    print_summary(results)
+    if print_summary:
+        print_summary_(results)
+
+    return results
 
 
 def bump_all() -> None:
     """"""
     results = []
-    version_was_bumped = False
+    version_bumped = False
 
     if build.prompt.should_update_version(
         default='y'
     ):
         bump_version()
-        version_was_bumped = True
+        version_bumped = True
+
+    results += bump_git(
+        ask_bump_version=False,
+        ask_bump_any_git=True,
+        print_summary=False,
+    )
 
     should_build_wheel: bool = build.prompt.should_build_wheel(
         default='y',
     )
 
     should_push_registry: bool = build.prompt.should_push_pypi(
-        default='y' if version_was_bumped else 'n',
-    )
-
-    git_settings = git.seq.get_settings_from_user(
-        should_tag_default=version_was_bumped,
-        version=CFG.get('version'),
+        default='y' if version_bumped else 'n',
     )
 
     if should_build_wheel:
@@ -95,12 +99,9 @@ def bump_all() -> None:
             clean_dir=True,
         ))
 
-    if git_settings.should_bump_any:
-        results.extend(git.seq.bump_sequence(git_settings))
-
     if should_push_registry:
         results.append(build.cmd.push_python_wheel_to_pypi(
             clean_dir=True,
         ))
 
-    print_summary(results)
+    print_summary_(results)

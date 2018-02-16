@@ -23,4 +23,4 @@
   "entry_points": {"console_scripts": []
 , "gui_scripts": []
 }
-  "tests_require": ["pytest", "wheel"]
+  "tests_require": ["pytest", "wheel", "buildlib"]
