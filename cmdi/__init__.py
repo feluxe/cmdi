@@ -108,7 +108,7 @@ def print_status(
 
 def print_summary(results: List[CmdResult], color=True):
     if color:
-        print(fg.cyan + 'Summary:' + 8 * '-' + fg.rs)
+        print(fg.cyan + '\nSummary\n' + 7 * '-' + fg.rs)
     else:
         print('Summary:' + 8 * '-')
     if isinstance(results, CmdResult):
