@@ -155,8 +155,8 @@ def command(decorated_func):
                             status=return_val.status,
                             color=return_val.color,
                             name=name,
-                            out=out,
-                            err=err,
+                            out=kwargs.get('_out'),
+                            err=kwargs.get('_err'),
                         )
                     else:
                         result = CmdResult(
@@ -165,8 +165,8 @@ def command(decorated_func):
                             name=name,
                             status=Status.ok,
                             color=StatusColor.green,
-                            out=out,
-                            err=err,
+                            out=kwargs.get('_out'),
+                            err=kwargs.get('_err'),
                         )
 
                 except Exception as e:
@@ -181,8 +181,8 @@ def command(decorated_func):
                         name=name,
                         status=Status.error,
                         color=StatusColor.red,
-                        out=out,
-                        err=err,
+                        out=kwargs.get('_out'),
+                        err=kwargs.get('_err'),
                     )
 
                 if verbose:
