@@ -106,7 +106,10 @@ def print_status(
             print(f'{r.name}: {r.status}', file=r.err)
 
 
-def print_summary(results: List[CmdResult], color=True):
+def print_summary(
+    results: Union[CmdResult, List[CmdResult]],
+    color=True,
+):
     if color:
         print(fg.cyan + '\nSummary\n' + 7 * '-' + fg.rs)
     else:

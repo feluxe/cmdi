@@ -43,21 +43,22 @@ def bump_version() -> Union[CmdResult, None]:
 
 def bump_git(
     ask_bump_any_git=False,
-    version_bumped=False,
     print_summary=True,
+    version=None,
 ):
     """"""
+    cur_version = CFG.get('version')
+    new_version = version or cur_version
 
-    if not version_bumped and build.prompt.should_update_version(
+    if not version and build.prompt.should_update_version(
         default='y',
     ):
-        bump_version()
-        version_bumped = True
+        new_version = bump_version().val
 
     seq_settings = git.seq.get_settings_from_user(
-        version=CFG.get('version'),
+        version=new_version,
         ask_bump_any_git=ask_bump_any_git,
-        should_tag_default_val=version_bumped,
+        should_tag_default_val=cur_version != new_version,
     )
 
     results = git.seq.bump_sequence(seq_settings)
@@ -71,16 +72,17 @@ def bump_git(
 def bump_all() -> None:
     """"""
     results = []
-    version_bumped = False
+    cur_version = CFG.get('version')
+    new_version = cur_version
 
     if build.prompt.should_update_version(
         default='y'
     ):
-        bump_version()
-        version_bumped = True
+        new_version = bump_version().val
 
+    print(new_version)
     results += bump_git(
-        version_bumped=True,
+        version=new_version,
         ask_bump_any_git=True,
         print_summary=False,
     )
@@ -90,7 +92,7 @@ def bump_all() -> None:
     )
 
     should_push_registry: bool = build.prompt.should_push_pypi(
-        default='y' if version_bumped else 'n',
+        default='y' if cur_version != new_version else 'n',
     )
 
     if should_build_wheel:
