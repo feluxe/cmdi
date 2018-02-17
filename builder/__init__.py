@@ -42,14 +42,13 @@ def bump_version() -> Union[CmdResult, None]:
 
 
 def bump_git(
-    ask_bump_version=True,
     ask_bump_any_git=False,
+    version_bumped=False,
     print_summary=True,
 ):
     """"""
-    version_bumped = False
 
-    if ask_bump_version and build.prompt.should_update_version(
+    if not version_bumped and build.prompt.should_update_version(
         default='y',
     ):
         bump_version()
@@ -81,7 +80,7 @@ def bump_all() -> None:
         version_bumped = True
 
     results += bump_git(
-        ask_bump_version=False,
+        version_bumped=True,
         ask_bump_any_git=True,
         print_summary=False,
     )
