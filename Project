@@ -10,7 +10,7 @@
 "description": ""
 "keywords": []
 "interpreter": "python3.6"
-"gemfury_env": "python"
+"registry": "pypi"
 "pypi":
   "install_requires": []
   "packages": ["cmdi"]
