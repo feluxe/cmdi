@@ -1,6 +1,6 @@
 "public_name": "cmdi"
 "interal_name": "cmdi"
-"version": "0.2.1"
+"version": "0.2.2"
 "license": "unlicensed"
 "author": "Felix Meyer-Wolters"
 "author_email": "felix@meyerwolters.de"
@@ -13,6 +13,7 @@
 "registry": "pypi"
 "pypi":
   "install_requires": []
+  "tests_require": []
   "packages": ["cmdi"]
   "package_dir": {"cmdi": "cmdi"}
   "package_data": {}
@@ -23,4 +24,3 @@
   "entry_points": {"console_scripts": []
 , "gui_scripts": []
 }
-  "tests_require": []
