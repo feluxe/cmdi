@@ -6,7 +6,7 @@
 import sys
 import io
 import cmdi
-from cmdi import command, CmdResult
+from cmdi import command, CmdResult, set_result
 from sty import fg, rs
 
 
@@ -28,6 +28,7 @@ def print_stdout_stderr(
     """"""
     print('foo stdout')
     print('bar stderr', file=sys.stderr)
+    return set_result()
 
 
 def stage_print_stdout_stderr():

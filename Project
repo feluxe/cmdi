@@ -1,6 +1,6 @@
 "public_name": "cmdi"
 "interal_name": "cmdi"
-"version": "0.1.0"
+"version": "0.2.1"
 "license": "unlicensed"
 "author": "Felix Meyer-Wolters"
 "author_email": "felix@meyerwolters.de"
@@ -23,4 +23,4 @@
   "entry_points": {"console_scripts": []
 , "gui_scripts": []
 }
-  "tests_require": ["pytest", "wheel", "buildlib"]
+  "tests_require": []

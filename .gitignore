@@ -1,6 +1,7 @@
 ### Misc. ###
 INFO.fmw.md
 .cache/
+**/tmp/*
 
 ### Python ###
 __pycache__/
@@ -12,13 +13,11 @@ __pycache__/
 dist/
 cmdi.egg-info/
 
-### Intellij ###
+# Editors
 *.iml
-.idea/
-
-### Vim ###
+.idea
+.vscode
+.history
 .swp
 
-### testing ###
-**/tmp/*
 

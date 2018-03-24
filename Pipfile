@@ -1,24 +1,17 @@
 [[source]]
-
 url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [packages]
-
 sty = "*"
 
-
 [dev-packages]
-
 "ruamel.yaml" = "*"
 wheel = "*"
 pytest = "*"
-buildlib = "==2.0.0-beta.13"
 docopt = "*"
-
+buildlib = "==0.2.3"
 
 [requires]
-
 python_version = "3.6"
