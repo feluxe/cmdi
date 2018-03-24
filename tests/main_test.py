@@ -21,18 +21,24 @@ def _get_title(
         return f'\nCmd: {string}{sep}'
 
 
-@command
-def print_stdout_stderr(
-    **cmdargs,
-) -> CmdResult:
+class cmd:
+
+    @staticmethod
+    @command
+    def print_stdout_stderr(foo, **cmdargs) -> CmdResult:
+        """"""
+        # return set_result(print_stdout_stderr(foo))
+        return print_stdout_stderr(foo)
+
+
+def print_stdout_stderr(foo) -> None:
     """"""
     print('foo stdout')
     print('bar stderr', file=sys.stderr)
-    return set_result()
 
 
 def stage_print_stdout_stderr():
-    return print_stdout_stderr()
+    return cmd.print_stdout_stderr('foo')
 
 
 def test_print_stdout_stderr(capfd):
@@ -68,7 +74,7 @@ def test_print_stdout_stderr(capfd):
 def stage_redirect_stdout_stderr_to_io():
     o = io.StringIO()
     e = io.StringIO()
-    return print_stdout_stderr(_out=o, _err=e)
+    return cmd.print_stdout_stderr('foo', _out=o, _err=e)
 
 
 def test_redirect_stdout_stderr_to_io(capfd):
@@ -106,7 +112,7 @@ def test_redirect_stdout_stderr_to_io(capfd):
 
 
 def stage_no_color():
-    return print_stdout_stderr(_color=False)
+    return cmd.print_stdout_stderr('foo', _color=False)
 
 
 def test_no_color(capfd):
@@ -139,7 +145,7 @@ def test_no_color(capfd):
 
 
 def stage_verbose_false():
-    return print_stdout_stderr(_verbose=False)
+    return cmd.print_stdout_stderr('foo', _verbose=False)
 
 
 def test_verbose_false(capfd):

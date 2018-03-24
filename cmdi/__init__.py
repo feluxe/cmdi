@@ -13,8 +13,9 @@
 [] TODO: Add tests for _set_color().
 """
 
-from typing import NamedTuple, Union, TextIO, Optional, Iterable, List
+from typing import NamedTuple, Union, TextIO, Optional, Iterable, List, Callable
 from contextlib import redirect_stdout, redirect_stderr
+from functools import partial, wraps
 import io
 import sys
 from sty import fg
@@ -82,10 +83,10 @@ def strip_args(loc):
 
 
 def set_result(
-        val: Optional[any] = None,
-        code: Optional[int] = None,
-        status: Optional[str] = None,
-        color: Optional[int] = None,
+    val: Optional[any] = None,
+    code: Optional[int] = None,
+    status: Optional[str] = None,
+    color: Optional[int] = None,
 ) -> CmdResult:
     """"""
     return CmdResult(
@@ -95,32 +96,14 @@ def set_result(
         status=status,
         color=color,
         out=None,
-        err=None)
-
-
-# class CustomCmdResult:
-#     """
-#     Use this as a return object in case you want to handle the result of a
-#     @command manually.
-#     """
-
-#     def __init__(
-#             self,
-#             val: Optional[any] = None,
-#             code: Optional[int] = None,
-#             status: Optional[str] = None,
-#             color: Optional[int] = None,
-#     ):
-#         self.val = val
-#         self.code = code
-#         self.status = status
-#         self.color = color
+        err=None
+    )
 
 
 def print_title(
-        string: str,
-        color: bool = True,
-        stdout: TextIO = sys.stdout,
+    string: str,
+    color: bool = True,
+    stdout: TextIO = sys.stdout,
 ):
     """
     Just a convenient way to print the title with color and all.
@@ -136,8 +119,8 @@ def print_title(
 
 
 def print_status(
-        result: CmdResult,
-        color: bool = True,
+    result: CmdResult,
+    color: bool = True,
 ) -> None:
     """
     Just a convenient way to print the status with color and all.
@@ -162,8 +145,8 @@ def print_status(
 
 
 def print_summary(
-        results: Union[CmdResult, List[CmdResult]],
-        color=True,
+    results: Union[CmdResult, List[CmdResult]],
+    color=True,
 ) -> None:
     """
     Just a convenient way to print the summary of one or multiple commands with
@@ -183,8 +166,8 @@ def print_summary(
 
 
 def _set_color(
-        color: Optional[int],
-        status: Optional[str],
+    color: Optional[int],
+    status: Optional[str],
 ) -> int:
     """
     Automatically determine color value.
@@ -207,6 +190,7 @@ def command(decorated_func):
     The @command decorator that turns a function into a command.
     """
 
+    @wraps(decorated_func)
     def command_wrapper(*args, **kwargs) -> CmdResult:
         """"""
         # Set default parameters.
@@ -227,11 +211,6 @@ def command(decorated_func):
                 try:
                     return_val = decorated_func(*args, **kwargs)
 
-                    # # If the user manually returns a CmdResult, we use it as our
-                    # # result, without further changes.
-                    # if isinstance(return_val, CmdResult):
-                    #     result = return_val
-
                     # If the user returns a CustomCmdResult, we take it and
                     # apply default values if necessary.
                     if isinstance(return_val, CmdResult):
@@ -240,8 +219,8 @@ def command(decorated_func):
                         code = return_val.code or 0
                         status = return_val.status or Status.ok
                         color = _set_color(
-                            color=return_val.color, status=status)
-                        name = name
+                            color=return_val.color, status=status
+                        )
                         out = kwargs.get('_out')
                         err = kwargs.get('_err')
 
@@ -258,17 +237,15 @@ def command(decorated_func):
                     # If the return type is none of CmdResult/CustomCmdResult,
                     # we wrap the default CmdResult around the return value.
                     else:
-                        # result = CmdResult(
-                        #     val=return_val,
-                        #     code=0,
-                        #     name=name,
-                        #     status=Status.ok,
-                        #     color=StatusColor.green,
-                        #     out=kwargs.get('_out'),
-                        #     err=kwargs.get('_err'),
-                        # )
-                        raise ValueError(
-                            'Command Function not returning CmdResult.')
+                        result = CmdResult(
+                            val=return_val,
+                            code=0,
+                            name=name,
+                            status=Status.ok,
+                            color=StatusColor.green,
+                            out=kwargs.get('_out'),
+                            err=kwargs.get('_err'),
+                        )
 
                 # If a function call fails, we wrap the error data in a
                 # CmdResult and return that.
