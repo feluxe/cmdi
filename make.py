@@ -61,6 +61,8 @@ def bump(cfg: Cfg):
     if git.prompt.should_run_git(default):
         results.extend(git.seq.bump_git(cfg.version, new_release))
 
+    return results
+
 
 def run():
 
