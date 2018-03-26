@@ -40,6 +40,28 @@ def test(cfg: Cfg):
     print('No tests available.')
 
 
+def bump(cfg: Cfg):
+
+    results = []
+
+    if project.prompt.should_bump_version():
+        result = project.cmd.bump_version()
+        cfg.version = result.val
+        results.append(result)
+
+    if wheel.prompt.should_build():
+        results.append(build(cfg))
+
+    if wheel.prompt.should_push('PYPI'):
+        results.append(deploy(cfg))
+
+    new_release = cfg.version != proj['version']
+    default = 'y' if new_release else 'n'
+
+    if git.prompt.should_run_git(default):
+        results.extend(git.seq.bump_git(cfg.version, new_release))
+
+
 def run():
 
     cfg = Cfg()
@@ -59,23 +81,7 @@ def run():
         results.append(git.seq.bump_git(cfg.version, new_release=False))
 
     if uinput['bump']:
-
-        if project.prompt.should_bump_version():
-            result = project.cmd.bump_version()
-            cfg.version = result.val
-            results.append(result)
-
-        if wheel.prompt.should_build():
-            results.append(build(cfg))
-
-        if wheel.prompt.should_push('PYPI'):
-            results.append(deploy(cfg))
-
-        new_release = cfg.version != proj['version']
-        default = 'y' if new_release else 'n'
-
-        if git.prompt.should_run_git(default):
-            results.extend(git.seq.bump_git(cfg.version, new_release))
+        results.extend(bump(cfg))
 
     print_summary(results)
 

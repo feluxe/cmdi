@@ -12,6 +12,8 @@ wheel = "*"
 pytest = "*"
 docopt = "*"
 buildlib = "==0.2.3"
+pylint = "*"
+yapf = "*"
 
 [requires]
 python_version = "3.6"
