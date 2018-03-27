@@ -4,8 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-"-e ." = "*"
-
 
 [dev-packages]
 "ruamel.yaml" = "*"
@@ -15,7 +13,6 @@ docopt = "*"
 buildlib = "==0.2.3"
 pylint = "*"
 yapf = "*"
-
 
 [requires]
 python_version = "3.6"
