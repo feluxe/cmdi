@@ -10,7 +10,7 @@ name = "pypi"
 wheel = "*"
 pytest = "*"
 docopt = "*"
-buildlib = "==0.2.3"
+buildlib = "*"
 pylint = "*"
 yapf = "*"
 
