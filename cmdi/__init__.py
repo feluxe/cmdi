@@ -150,15 +150,17 @@ def print_status(
 def print_summary(
     results: Union[Optional[CmdResult], List[Optional[CmdResult]]],
     color=True,
+    headline=True,
 ) -> None:
     """
     Just a convenient way to print the summary of one or multiple commands with
     color and all.
     """
-    if color:
-        print(fg.cyan + '\nSummary\n' + 7 * '-' + fg.rs)
-    else:
-        print('Summary:' + 8 * '-')
+    if headline:
+        if color:
+            print(fg.cyan + '\nSummary\n' + 7 * '-' + fg.rs)
+        else:
+            print('Summary:' + 8 * '-')
 
     if not results:
         return
@@ -168,7 +170,7 @@ def print_summary(
 
     elif isinstance(results, Iterable):
         for item in results:
-            print_summary(item, color)
+            print_summary(item, color, headline=False)
 
 
 def _set_color(
