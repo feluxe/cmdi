@@ -5,7 +5,7 @@ from docopt import docopt
 
 interface = """
     Install:
-        pipenv install
+        pipenv install --dev --pre
         pipenv run python make.py
 
     Usage:
@@ -37,7 +37,7 @@ def deploy(cfg: Cfg):
 
 
 def test(cfg: Cfg):
-    print('No tests available.')
+    sp.run(['pipenv', 'run', 'python', '-m', 'tests'])
 
 
 def bump(cfg: Cfg):

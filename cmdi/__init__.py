@@ -126,7 +126,10 @@ def print_status(
     Just a convenient way to print the status with color and all.
     """
     if not isinstance(result, CmdResult):
-        raise TypeError('Error: param "result" must be of type: "CmdResult".')
+        raise TypeError(
+            'Error: param "result" must be of type: "CmdResult" but it is of type: '
+            + type(result)
+        )
 
     r = result
 
@@ -145,7 +148,7 @@ def print_status(
 
 
 def print_summary(
-    results: Union[CmdResult, List[CmdResult]],
+    results: Union[Optional[CmdResult], List[Optional[CmdResult]]],
     color=True,
 ) -> None:
     """
@@ -157,12 +160,15 @@ def print_summary(
     else:
         print('Summary:' + 8 * '-')
 
-    if isinstance(results, CmdResult):
+    if not results:
+        return
+
+    elif isinstance(results, CmdResult):
         print_status(results, color)
 
-    if isinstance(results, Iterable):
+    elif isinstance(results, Iterable):
         for item in results:
-            print_status(item, color)
+            print_summary(item, color)
 
 
 def _set_color(
