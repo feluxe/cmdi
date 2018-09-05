@@ -6,13 +6,10 @@ name = "pypi"
 [packages]
 
 [dev-packages]
-"ruamel.yaml" = "*"
-wheel = "*"
-pytest = "*"
-docopt = "*"
-buildlib = "*"
+buildlib = "==2.0.0"
 pylint = "*"
 yapf = "*"
+docopt = "*"
 
 [requires]
 python_version = "3.6"
