@@ -13,7 +13,7 @@
 [] TODO: Add tests for _set_color().
 """
 
-from typing import NamedTuple, Union, TextIO, Optional, Iterable, List, Callable
+from typing import NamedTuple, Union, TextIO, Optional, Iterable, List, Callable, Any
 from contextlib import redirect_stdout, redirect_stderr
 from functools import partial, wraps
 import io
@@ -67,28 +67,30 @@ class CmdResult(NamedTuple):
     The default result type.
     Each function that is decorated with @command returns this type.
     """
-    val: any
-    code: int
-    name: str
-    status: str
-    color: int
-    out: TextIO
-    err: TextIO
+    val: Optional[Any]
+    code: Optional[int]
+    name: Optional[str]
+    status: Optional[str]
+    color: Optional[int]
+    out: Optional[TextIO]
+    err: Optional[TextIO]
 
 
 def strip_args(loc):
+
     if 'cmdargs' in loc:
         del loc['cmdargs']
     return loc
 
 
 def set_result(
-    val: Optional[any] = None,
+    val: Optional[Any] = None,
     code: Optional[int] = None,
     status: Optional[str] = None,
     color: Optional[int] = None,
 ) -> CmdResult:
     """"""
+
     return CmdResult(
         val=val,
         code=code,
@@ -108,6 +110,7 @@ def print_title(
     """
     Just a convenient way to print the title with color and all.
     """
+
     sep = '\n' + (len(string) + 5) * '-'
 
     if color:
@@ -125,6 +128,7 @@ def print_status(
     """
     Just a convenient way to print the status with color and all.
     """
+
     if not isinstance(result, CmdResult):
         raise TypeError(
             'Error: param "result" must be of type: "CmdResult" but it is of type: '
