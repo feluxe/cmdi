@@ -1,26 +1,13 @@
-"public_name": "cmdi"
-"interal_name": "cmdi"
-"version": "0.3.4"
-"license": "unlicensed"
-"author": "Felix Meyer-Wolters"
-"author_email": "felix@meyerwolters.de"
-"maintainer": "Felix Meyer-Wolters"
-"maintainer_email": "felix@meyerwolters.de"
-"url": "https://github.com/feluxe/cmdi"
-"description": ""
-"keywords": []
-"interpreter": "python3.6"
-"registry": "pypi"
-"pypi":
-  "install_requires": []
-  "tests_require": []
-  "packages": ["cmdi"]
-  "package_dir": {"cmdi": "cmdi"}
-  "package_data": {}
-  "py_modules": []
-  "data_files": []
-  "classifiers": []
-  "platforms": ""
-  "entry_points": {"console_scripts": []
-, "gui_scripts": []
-}
+public_name: cmdi
+interal_name: cmdi
+version: 0.3.5
+license: unlicensed
+author: Felix Meyer-Wolters
+author_email: felix@meyerwolters.de
+maintainer: Felix Meyer-Wolters
+maintainer_email: felix@meyerwolters.de
+url: https://github.com/feluxe/cmdi
+description: ''
+keywords: []
+interpreter: python3.6
+registry: pypi
