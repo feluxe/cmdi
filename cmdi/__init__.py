@@ -157,8 +157,8 @@ def print_summary(
     headline=True,
 ) -> None:
     """
-    Just a convenient way to print the summary of one or multiple commands with
-    color and all.
+    A convenient way to print the summary of one or multiple commands with color 
+    and all.
     """
     if headline:
         if color:
@@ -166,15 +166,15 @@ def print_summary(
         else:
             print('Summary:' + 8 * '-')
 
-    if not results:
-        return
-
-    elif isinstance(results, CmdResult):
+    if isinstance(results, CmdResult):
         print_status(results, color)
 
     elif isinstance(results, Iterable):
         for item in results:
             print_summary(item, color, headline=False)
+
+    else:
+        return
 
 
 def _set_color(

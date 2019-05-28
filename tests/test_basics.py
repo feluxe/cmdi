@@ -1,7 +1,3 @@
-"""
-
-"""
-
 # from cmdinter import run_cmd, CmdFuncResult, CmdResult, Status
 import sys
 import io
@@ -25,33 +21,27 @@ class cmd:
 
     @staticmethod
     @command
-    def print_stdout_stderr(foo, **cmdargs) -> CmdResult:
+    def dummy_command(foo, **cmdargs) -> CmdResult:
         """"""
-        # return set_result(print_stdout_stderr(foo))
-        return print_stdout_stderr(foo)
+        return dummy_command(foo)
 
 
-def print_stdout_stderr(foo) -> None:
+def dummy_command(foo) -> None:
     """"""
     print('foo stdout')
     print('bar stderr', file=sys.stderr)
 
 
-def stage_print_stdout_stderr():
-    return cmd.print_stdout_stderr('foo')
-
-
 def test_print_stdout_stderr(capfd):
-    func_name = 'print_stdout_stderr'
 
-    result = stage_print_stdout_stderr()
+    result = cmd.dummy_command('foo')
 
     out, err = capfd.readouterr()
 
     # Check stdout.
-    title: str = _get_title(func_name)
+    title: str = _get_title(dummy_command.__name__)
     a: str = 'foo stdout\n'
-    status: str = f'{fg.green}{func_name}: Ok{fg.rs}'
+    status: str = f'{fg.green}{dummy_command.__name__}: Ok{fg.rs}'
     assert title in out
     assert a in out
     assert status in out
@@ -71,16 +61,11 @@ def test_print_stdout_stderr(capfd):
     assert result.status == status
 
 
-def stage_redirect_stdout_stderr_to_io():
+def test_redirect_stdout_stderr_to_io(capfd):
+
     o = io.StringIO()
     e = io.StringIO()
-    return cmd.print_stdout_stderr('foo', _out=o, _err=e)
-
-
-def test_redirect_stdout_stderr_to_io(capfd):
-    func_name = 'print_stdout_stderr'
-
-    result = stage_redirect_stdout_stderr_to_io()
+    result = cmd.dummy_command('foo', _out=o, _err=e)
 
     out, err = capfd.readouterr()
 
@@ -95,9 +80,9 @@ def test_redirect_stdout_stderr_to_io(capfd):
     assert result.val is None
 
     # Check result out.
-    title: str = _get_title(func_name)
+    title: str = _get_title(dummy_command.__name__)
     a: str = 'foo stdout\n'
-    status: str = f'{fg.green}{func_name}: Ok{fg.rs}'
+    status: str = f'{fg.green}{dummy_command.__name__}: Ok{fg.rs}'
     assert title in result.out.getvalue()
     assert a in result.out.getvalue()
     assert status in result.out.getvalue()
@@ -111,19 +96,14 @@ def test_redirect_stdout_stderr_to_io(capfd):
     assert result.status == status
 
 
-def stage_no_color():
-    return cmd.print_stdout_stderr('foo', _color=False)
-
-
 def test_no_color(capfd):
-    func_name = 'print_stdout_stderr'
 
-    result = stage_no_color()
+    result = cmd.dummy_command('foo', _color=False)
 
     out, err = capfd.readouterr()
 
     # Check stdout.
-    title: str = _get_title(func_name, color=False)
+    title: str = _get_title(dummy_command.__name__, color=False)
     a: str = 'foo stdout\n'
     status: str = f'Ok'
     assert title in out
@@ -144,21 +124,16 @@ def test_no_color(capfd):
     assert result.status == status
 
 
-def stage_verbose_false():
-    return cmd.print_stdout_stderr('foo', _verbose=False)
-
-
 def test_verbose_false(capfd):
-    func_name = 'print_stdout_stderr'
 
-    result = stage_verbose_false()
+    result = cmd.dummy_command('foo', _verbose=False)
 
     out, err = capfd.readouterr()
 
     # Check stdout.
-    title: str = _get_title(func_name)
+    title: str = _get_title(dummy_command.__name__)
     a: str = 'foo stdout\n'
-    status: str = f'{fg.green}{func_name}: Ok{fg.rs}'
+    status: str = f'{fg.green}{dummy_command.__name__}: Ok{fg.rs}'
     assert title not in out
     assert a in out
     assert status not in out
@@ -176,3 +151,5 @@ def test_verbose_false(capfd):
     # Check result status.
     status: str = f'Ok'
     assert result.status == status
+
+
