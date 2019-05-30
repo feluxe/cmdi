@@ -11,6 +11,7 @@ yapf = "*"
 docopt = "*"
 buildlib = "==2.1.9"
 pytest = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.6"
