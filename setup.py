@@ -15,6 +15,7 @@ setup(
     maintainer_email=config['maintainer_email'],
     url=config['url'],
     description=config['description'],
+    long_description_content_type="text/markdown",
     long_description=long_description,
     download_url=config['url'] + '/tarball/' + config['version'],
     license=config['license'],

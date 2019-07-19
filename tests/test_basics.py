@@ -2,7 +2,7 @@
 import sys
 import io
 import cmdi
-from cmdi import command, CmdResult, set_result
+from cmdi import command, CmdResult
 from sty import fg, rs
 
 
@@ -23,7 +23,7 @@ class cmd:
     @command
     def dummy_command(foo, **cmdargs) -> CmdResult:
         """"""
-        return dummy_command(foo)
+        return dummy_command(foo)  # type: ignore
 
 
 def dummy_command(foo) -> None:
@@ -63,9 +63,9 @@ def test_print_stdout_stderr(capfd):
 
 def test_redirect_stdout_stderr_to_io(capfd):
 
-    o = io.StringIO()
-    e = io.StringIO()
-    result = cmd.dummy_command('foo', _out=o, _err=e)
+    result = cmd.dummy_command(
+        'foo', _out=io.StringIO(), _err=io.StringIO(), _verbose=False
+    )
 
     out, err = capfd.readouterr()
 
@@ -83,9 +83,7 @@ def test_redirect_stdout_stderr_to_io(capfd):
     title: str = _get_title(dummy_command.__name__)
     a: str = 'foo stdout\n'
     status: str = f'{fg.green}{dummy_command.__name__}: Ok{fg.rs}'
-    assert title in result.out.getvalue()
     assert a in result.out.getvalue()
-    assert status in result.out.getvalue()
 
     # Check result err.
     a: str = 'bar stderr'
@@ -151,5 +149,3 @@ def test_verbose_false(capfd):
     # Check result status.
     status: str = f'Ok'
     assert result.status == status
-
-

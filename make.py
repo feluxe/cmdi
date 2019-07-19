@@ -14,10 +14,9 @@ Usage:
 Options:
 -h, --help               Show this screen.
 """
-
 import subprocess as sp
-from cmdi import print_summary
-from buildlib import buildmisc, git, wheel, project, yaml
+from cmdi import print_summary, command
+from buildlib import git, wheel, project, yaml
 from docopt import docopt
 
 proj = yaml.loadfile('Project')
@@ -36,8 +35,9 @@ def deploy(cfg: Cfg):
     return wheel.cmd.push(clean_dir=True, repository=cfg.registry)
 
 
+@command
 def test(cfg: Cfg):
-    sp.run(['pipenv', 'run', 'python', '-m', 'tests'])
+    sp.run(['pipenv', 'run', 'python', '-m', 'tests'], check=True)
 
 
 def bump(cfg: Cfg):

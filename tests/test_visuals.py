@@ -19,7 +19,7 @@ class cmd:
     @command
     def dummy_command(foo, **cmdargs) -> CmdResult:
         """"""
-        return dummy_command(foo)
+        return dummy_command(foo)  # type: ignore
 
 
 def dummy_command(foo) -> None:
