@@ -2,7 +2,7 @@
 
 ## Description
 
-A decorator (`@command`) that applies a special interface called the _Command Interface_ to its decorated function. Initially written for the _buildlib_.
+A decorator `@command` that applies a special interface called the _Command Interface_ to its decorated function. Initially written for the _buildlib_.
 
 The _Command Interface_ allows you to control the exectuion of a function via the _Command Interface_:
 

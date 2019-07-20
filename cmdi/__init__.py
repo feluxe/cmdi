@@ -412,7 +412,7 @@ def _enqueue_output(file: IO[str], queue: Queue) -> None:
 
 def read_popen_pipes(
     p: sp.Popen,
-    interval: int = 10,
+    interval: int = 0,
 ) -> Iterator[Tuple[str, str]]:
 
     with ThreadPoolExecutor(2) as pool:
@@ -422,12 +422,10 @@ def read_popen_pipes(
         pool.submit(_enqueue_output, p.stdout, q_stdout)
         pool.submit(_enqueue_output, p.stderr, q_stderr)
 
-        loop_should_run = True
+        while True:
 
-        while loop_should_run:
-
-            if p.poll() is not None:
-                loop_should_run = False
+            if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
+                break
 
             out_line = err_line = ''
 
@@ -449,7 +447,7 @@ def resolve_popen(
     mute_stdout: bool = False,
     mute_stderr: bool = False,
     catch: List[int] = [],
-    interval: int = 10,
+    interval: int = 0,
 ) -> sp.CompletedProcess:
     args = p.args
     from typing import cast
@@ -483,7 +481,7 @@ def run_subprocess(
     mute_stdout: bool = False,
     mute_stderr: bool = False,
     catch: List[int] = [],
-    interval: int = 10,
+    interval: int = 0,
     cwd: Optional[str] = None,
     shell: bool = False,
 ):

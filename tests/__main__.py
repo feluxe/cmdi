@@ -92,3 +92,12 @@ def foo3() -> None:
 print("RUN 3")
 
 foo3()
+
+
+def foo4() -> None:
+    cp = cmdi.run_subprocess(['git', 'status'])
+
+
+print("RUN 4")
+
+foo4()
