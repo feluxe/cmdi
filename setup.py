@@ -23,7 +23,7 @@ setup(
     include_package_data=True,
     platforms="",
     classifiers=[],
-    install_requires=['sty'],
+    install_requires=[''],
     tests_require=[],
     packages=['cmdi'],
     package_dir={"cmdi": "cmdi"},
