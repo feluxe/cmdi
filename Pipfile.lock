@@ -61,9 +61,9 @@
         },
         "cmdi": {
             "hashes": [
-                "sha256:f79aead3494cbf270c56975bb429431b70c251c650933843fd5d79b3f5d0db28"
+                "sha256:02a448ebf11ae677f7e1038e743971f4fa20ae2db365ab87f00162645adadb88"
             ],
-            "version": "==0.4.0"
+            "version": "==1.0.2"
         },
         "docopt": {
             "hashes": [
@@ -131,10 +131,10 @@
         },
         "more-itertools": {
             "hashes": [
-                "sha256:3ad685ff8512bf6dc5a8b82ebf73543999b657eded8c11803d9ba6b648986f4d",
-                "sha256:8bb43d1f51ecef60d81854af61a3a880555a14643691cc4b64a6ee269c78f09a"
+                "sha256:409cd48d4db7052af495b09dec721011634af3753ae1ef92d2b32f73a745f832",
+                "sha256:92b8c4b06dac4f0611c0729b2f2ede52b2e1bac1ab48f089c7ddc12e26bb60c4"
             ],
-            "version": "==7.1.0"
+            "version": "==7.2.0"
         },
         "mypy": {
             "hashes": [
@@ -204,10 +204,10 @@
         },
         "pyparsing": {
             "hashes": [
-                "sha256:1873c03321fc118f4e9746baf201ff990ceb915f433f23b395f5580d1840cb2a",
-                "sha256:9b6323ef4ab914af344ba97510e966d64ba91055d6b9afa6b30799340e89cc03"
+                "sha256:09b60ec311af02f93c66ab2cb65e3ca92c5cb5de5445894982ce9f0928b116f5",
+                "sha256:38181feb3a1278f464b7e1d0d647760f7ab08d93f654f886ff528946450adbab"
             ],
-            "version": "==2.4.0"
+            "version": "==2.4.2a1"
         },
         "pytest": {
             "hashes": [

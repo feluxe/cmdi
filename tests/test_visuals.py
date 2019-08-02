@@ -1,77 +1,149 @@
-import io
 import sys
-from cmdi import CmdResult, command
+sys.path.insert(0, '.')
+import io
+from cmdi import CmdResult, command, Pipe
 from sty import fg
 from concurrent.futures import ProcessPoolExecutor as Executor, as_completed, wait as f_wait
 
+from tests.helpers import cmd_print_stdout_stderr
+
+# HELPERS
+# -------
+
 
 def print_testname(name, label=''):
-    print(f'{fg.li_magenta}\n\nTest: {name} {label}{fg.rs}\n')
+    print(f'{fg.li_magenta}\n\n{name} {label}\n{"="*50}{fg.rs}')
 
 
 def print_flag(string):
-    print(fg.da_white + string + fg.rs)
+    print('\n' + fg.da_white + string + fg.rs)
 
 
-class cmd:
-
-    @staticmethod
-    @command
-    def dummy_command(foo, **cmdargs) -> CmdResult:
-        """"""
-        return dummy_command(foo)  # type: ignore
+def print_runtime_flag():
+    print_flag('[runtime output]')
 
 
-def dummy_command(foo) -> None:
-    """"""
-    print('foo stdout')
-    print('bar stderr', file=sys.stderr)
+def print_result_flag(field):
+    print_flag(f'[result.{field}]')
 
 
-def print_result(result):
-    if not isinstance(result, CmdResult):
-        return
-    print_flag('[result.val]')
-    print(result.val)
-    print_flag('[result.status]')
-    print(result.status)
-    try:
-        print_flag('[result.out]')
-        print(result.out.getvalue())
-    except AttributeError:
-        pass
-    try:
-        print_flag('[result.err]')
-        print(result.err.getvalue())
-    except AttributeError:
-        pass
+def print_msg(text):
+    print(f"{fg.da_white}{text}{fg.rs}")
 
 
-print_testname("Stdout/stderr")
-print_flag('[runtime]')
-result = cmd.dummy_command('foo')
-print_result(result)
+# TESTS
+# -----
 
-print_testname("Redirect stdout/stderr to io")
-print_flag('[runtime]')
-o = io.StringIO()
-e = io.StringIO()
-result = cmd.dummy_command('foo', _out=o, _err=e)
-print_result(result)
+print(fg.li_yellow)
+print("--------------------------------------------")
+print("VISUAL TESTS PLEASE READ THE TERMINAL OUTPUT")
+print("--------------------------------------------")
+print(
+    "We use visual tests for the things in cmdi that we can't test with pytest."
+)
+print("You must read the below terminal output carefully.")
+print("--------------------------------------------")
+print(fg.rs)
 
-print_testname("Color=False")
-print_flag('[runtime]')
-result = cmd.dummy_command('foo', _color=False)
-print_result(result)
 
-print_testname('Verbose=False')
-print_flag('[runtime]')
-result = cmd.dummy_command('foo', _verbose=False)
-print_result(result)
+def test_stdout_stderr():
+    print_testname(test_stdout_stderr.__name__)
 
-print_testname('Pickle')
-print_flag('[runtime]')
-with Executor() as excecutor:
-    future = excecutor.submit(cmd.dummy_command, 'foo')
-    result = future.result()
-    print_result(result)
+    print_runtime_flag()
+    print_msg("* Should be in color.")
+    print_msg("* Should contain stdout and stderr messages.")
+    print_msg("* Should contain title and status.")
+
+    cr = cmd_print_stdout_stderr(return_val='foo')
+
+    print_result_flag('val')
+    print_msg("* Should be `foo`")
+    print(cr.val)
+
+
+test_stdout_stderr()
+
+
+def test_pipe_dup_save_text_tty():
+    print_testname(test_pipe_dup_save_text_tty.__name__)
+
+    print_runtime_flag()
+    print_msg("* Should be in color.")
+    print_msg("* Should contain title and status.")
+    print_msg("* Should contain stdout and stderr messages.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+
+    p = Pipe(dup=True, save=True, tty=True, text=True)
+
+    cr = cmd_print_stdout_stderr(
+        return_val='foo', with_sub=True, _stdout=p, _stderr=p
+    )
+
+    print_result_flag('out')
+    print_msg("* Should contain all stdout lines in color.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+    print(cr.stdout)
+
+    print_result_flag('err')
+    print_msg("* Should contain all stderr lines in color.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+    print(cr.stderr)
+
+
+test_pipe_dup_save_text_tty()
+
+
+def test_pipe_dup_mute():
+    print_testname(test_pipe_dup_mute.__name__)
+
+    print_runtime_flag()
+    print_msg("* Should only show title and status in color.")
+
+    p = Pipe(dup=True, save=True, tty=True, text=True, mute=True)
+
+    cr = cmd_print_stdout_stderr(
+        return_val='foo', with_sub=True, _stdout=p, _stderr=p
+    )
+
+    print_result_flag('out')
+    print_msg("* Should contain all stdout lines in color.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+    print(cr.stdout)
+
+    print_result_flag('err')
+    print_msg("* Should contain all stderr lines in color.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+    print(cr.stderr)
+
+
+test_pipe_dup_mute()
+
+
+def test_pickle():
+    print_testname(test_pickle.__name__)
+    print_runtime_flag()
+    print_msg("* Should be in color.")
+    print_msg("* Should contain title and status.")
+    print_msg("* Should contain stdout and stderr messages.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+
+    p = Pipe(dup=True, save=True, tty=True, text=True, mute=False)
+
+    with Executor() as excecutor:
+        future = excecutor.submit(
+            cmd_print_stdout_stderr, 'foo', with_sub=True, _stdout=p, _stderr=p
+        )
+        cr = future.result()
+
+    print_result_flag('out')
+    print_msg("* Should contain all stdout lines in color.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+    print(cr.stdout)
+
+    print_result_flag('err')
+    print_msg("* Should contain all stderr lines in color.")
+    print_msg("* Should contain stdout and stderr of subprocess as well.")
+    print(cr.stderr)
+
+
+test_pickle()

@@ -6,12 +6,12 @@ A decorator `@command` that applies a special interface called the _Command Inte
 
 The _Command Interface_ allows you to control the exectuion of a function via the _Command Interface_:
 
--   It allows you to save/redirect output streams (stdout/stderr) for its decorated function.
+-   It allows you to save/redirect/mute output streams (stdout/stderr) for its decorated function. This works on file descriptor level, thus it's possible to redirect output of subproesses and C code.
 -   It allows you to catch exceptions for its decorated function and return them with the `CmdResult()`, including _return codes_, _error messages_ and colored _status messages_.
 -   It allows you to print status messages and summaries for a command at runtime.
 -   And more...
 
-A function that is decorated with `@command` can receive a set of sepcial keyword arguments (`_verbose=...`, `_out=...`, `_err=...`, `catch_err=...`, etc.) and it always returns a `CmdResult()` object.
+A function that is decorated with `@command` can receive a set of sepcial keyword arguments (`_verbose=...`, `_stdout=...`, `_stderr=...`, `catch_err=...`, etc.) and it returns a `CmdResult()` object.
 
 ## Requirements
 
@@ -62,8 +62,8 @@ CmdResult(
     name='foo_cmd',
     status='Ok',
     color=0,
-    out=None,
-    err=None
+    stdout=None,
+    stderr=None
 )
 ```
 
@@ -74,16 +74,17 @@ You can define the behaviour of a command function using a set of special keywor
 In this example we redirect the output of `foo_cmd` to a custom writer and catch exceptions, the output and information of the exception are then returned with the `CmdResult()` object:
 
 ```python
-from io import StringIO
-from cmdi import CmdResult
+from cmdi import CmdResult, Pipe
 
 
-result = foo_cmd(10, _out=StringIO(), _catch_err=True)
+result = foo_cmd(10, _stdout=Pipe(), _catch_err=True)
 
 isinstance(result, CmdResult) # True
+
+print(result.stdout) # prints caught output.
 ```
 
-More on special keyword arguments can be found in the API documentation below.
+More about special keyword arguments can be found in the API documentation below.
 
 ### Customizing the Result of a command function
 
@@ -101,7 +102,7 @@ def foo_cmd(x: str, **cmdargs) -> CmdResult:
     else:
         code = 42
 
-    # Customized Result:
+    # Return a customized Command Result:
 
     return CmdResult(
         val=somestr,
@@ -132,27 +133,7 @@ def foo(x) -> int:
     return x * 2
 ```
 
-### Usage with `subprocess`
-
-If you want to use the `@command` decorator on functions that use `subprocess`'es, you have to stick to the following convention, otherwise your command function might not be able to redirect `stdout`/`stderr` to custom IO streams.
-
-First you have to use `Popen()` with the following arguments:
-
-```python
-p = subprocess.Popen(
-    # ...
-    stdout=subprocess.PIPE,
-    stdout=subprocess.PIPE,
-    text=True,
-    bufsize=1,
-)
-```
-
-and then you have to write the output of each PIPE to `stdout` and `stderr` manually. `cmdi` offers `read_popen_pipes()` and `resolve_popen()` to help with that.
-
-`cmdi` also provides a function `run_subprocess()` which is similar to `subprocess.run()`. This function runs Popen in a `cmdi` conformable way and returns a `CompletedProcess()` object. See API documentation below.
-
-### Command Interface Wrappers and `subprocess`
+### Command Interface Wrappers and `subprocess` return codes.
 
 If you need to create a _Command Interface Wrapper_ for an existing function that runs a `subprocess` and your command depends on the `returncode` of that, you can use the `subprocess.CalledProcessError` exception to compose something. E.g.:
 
@@ -187,24 +168,6 @@ def foo(x) -> int:
 
 ```
 
-#### Issue with missing Popen output
-
-It can happen that you your Popen command doesn't print/save the command output. In such case you should try to change `bufsize` to `1` or `0`, e.g. `Popen(..., bufzise=1)`.
-
-A known situation where `bufsize=1` won't help is, when you call Python scripts with `Popen`, e.g.:
-
-```python
-Popen(['python', 'my_script.py'])
-```
-
-To fix this, you have to run Python _unbuffered_ via the `-u` flag:
-
-```python
-Popen(['python', '-u', 'my_script.py'])
-```
-
-Alternatively you can set the env-var `PYTHONUNBUFFERD=1` for `Popen(..., env=...)`
-
 ## API
 
 ### decorator `@command`
@@ -233,44 +196,62 @@ Enable/Disable color for header/status message.
 result = my_command_func("some_arg", _color=False)
 ```
 
-#### `_out: IO = sys.stdout`
+#### `_stdout: Optional[Pipe] = None`
 
-Redirect stdout of the child function to a stream object.
+Redirect stdout of the child function.
 
 **Example:**
 
 ```python
-import io
+from cmdi import Pipe
 
-result = my_command_func('foo', _out=io.StringIO())
+pipe = Pipe(text=False, tty=True, ...) # See Pipe doc for arguments...
 
-print(result.out.getvalue())
+result = my_command_func('foo', _stdout=pipe)
+
+print(result.stdout) # Prints the caught ouput.
 ```
 
-#### `_out: IO = sys.stderr`
+#### `_stderr: Union[Optional[Pipe], STDOUT] = None`
 
-Redirect stderr of the child function to a stream object.
+Redirect stderr of the child function.
 
 **Example:**
 
 ```python
-import io
+from cmdi import Pipe
 
-result = my_command_func('foo', _err=io.StringIO())
+pipe = Pipe(text=False, tty=True, ...) # See Pipe doc for arguments...
 
-print(result.err.getvalue())
+result = my_command_func('foo', _stderr=pipe))
+
+print(result.stderr) # Prints the caught ouput.
+```
+
+If you want to redirect `stderr` to `stdout`, you can use this:
+
+```python
+from cmdi import STDOUT
+
+result = my_command_func('foo', _stderr=STDOUT))
 ```
 
 #### `_catch_err: bool = True`
 
 Catch errors from child function.
 
-This will let the runtime continue, even if a child function throws an exception. The resulting `CmdResult` provides information about the error in `err`, `code` and `status`. The `color` will be set to red.
+This will let the runtime continue, even if a child function throws an exception. If an exception occurs the `CmdResult` object will provide information about the error at `result.stderr`, `result.code` and `result.status`. The status message will appear in red.
 
 **Example:**
+from cmdi import Pipe
 
 ```python
-r = my_command_func("some_arg", _catch_err=True)
+r = my_command_func("some_arg", _catch_err=True, _stderr=Pipe())
+
+r.status # Error
+r.code # 1
+r.stdout # The stderr output from the function call.
+
 ```
 
 ### dataclass `CmdResult()`
@@ -291,9 +272,49 @@ class CmdResult:
     err: Optional[TextIO]
 ```
 
-def strip*cmdargs(locals*: Dict[str, Any]) -> Dict[str, Any]:
+### dataclass `Pipe()`
 
-### function `strip_cmdargs()`
+Use this type to configure `stdout`/`stderr` for a command call.
+
+**Parameters**
+
+-   `save: bool = True` - Save the function ouput if `True`.
+-   `text: bool = True` - Save function output as text if `True` else save as bytes.
+-   `dup: bool = False` - Redirect ouput at file discriptor level if `True`. This allows you to redirect output of subprocesses and C code.
+-   `tty: bool = False` - Keep ANSI sequences for saved output if `True`, else strip ANSI sequences.
+-   `mute: bool = False` - Mute output of function call in terminal if `True`. NOTE: You can still save and return the ouput if this is enabled.
+
+**Example:**
+
+```python
+from cmdi import CmdResult, Pipe
+
+out_pipe = Pipe(text=False, dup=True, mute=True)
+err_pipe = Pipe(text=False, dup=True, mute=False)
+
+result = foo_cmd(10, _stdout=out_pipe, _stderr=err_pipe, _catch_err=True)
+
+print(result.stdout) # prints caught output.
+print(result.stderr) # prints caught output.
+```
+
+### Redirect ouput of functions that run subprocesses or C code.
+
+If you want to redirect the ouput of a function that runs a subprocess or calls C code, you have to use a `Pipe` with the argument `dup=True`. This will catch the output of stdout/stderr at a lower level (by duping file descriptors):
+
+```python
+import subprocess
+from cmdi import command, Pipe
+
+@command
+def foo(x, **cmdargs) -> CmdResult:
+    subprocess.run("my_script")
+
+# Catch stdout of the function via low level redirect:
+foo(_stdout=Pipe(dup=True))
+```
+
+### function `strip_cmdargs(locals_)`
 
 **Parameters**
 
@@ -303,10 +324,8 @@ def strip*cmdargs(locals*: Dict[str, Any]) -> Dict[str, Any]:
 
 -   `Dict[str, Any]`
 
-Remove cmdargs from locals.
-This is useful in case you don't want to decorate a function directly, but maintain a separate command interface for it.
-
-Example usage:
+Remove cmdargs from dictionary.
+This function is useful for _Command Interface Wrappers_.
 
 Example usage:
 
@@ -320,33 +339,7 @@ def foo_cmd(x, **cmdargs):
     return foo(strip_cmdargs(locals()))
 ```
 
-### `StdOutIO()` and `StdErrIO()`
-
-Special stream writers.
-
-`cmdi` provides two special stream writers: `StdOutIO` and `StdErrIO`, which mirror output of stdout and stderr to both the default stream writers (`sys.stdout`, `sys.stderr`) and to a `StringIO` stream, thus you can print to the terminal and return output with `CmdResult` at the same time.
-
--   `StdOutIO` writes _stdout_ to `sys.stdout` and to a `StringIO` object at the same time.
--   `StdErrIO` writes _stderr_ to `sys.stderr` and to a `StringIO` object at the same time.
-
-**Example:**
-
-```python
-from cmdi import command, StdOutIO
-
-@command
-def foo():
-    print('bar')
-
-# This command prints "bar" to the terminal at runtime:
-result = foo(_out=StdOutIO())
-
-# The CmdResult contains the output as a string as well, so this line prints
-# "bar" as well:
-print(result.out.getvalue())
-```
-
-### function `print_title()`
+### function `print_title(result, color, file)`
 
 **Parameter**
 
@@ -375,7 +368,7 @@ Cmd: my_cmd
 -----------
 ```
 
-### function `print_status()`
+### function `print_status(result, color, file)`
 
 **Parameter**
 
@@ -403,7 +396,7 @@ Output:
 my_cmd: Ok
 ```
 
-### function `print_result()`
+### function `print_result(result, color, file)`
 
 **Parameter**
 
@@ -437,7 +430,7 @@ Some err
 foo_cmd3: Ok
 ```
 
-### function `print_summary()`
+### function `print_summary(results, color, headline, file)`
 
 **Parameter**
 
@@ -481,7 +474,7 @@ stdout of baz function...
 my_baz_cmd: Ok
 ```
 
-### function `read_popen_pipes()`
+### function `read_popen_pipes(p, interval)`
 
 **Parameter**
 
@@ -524,7 +517,7 @@ code = p.poll()
 
 -   `subprocess.CompletedProcess`
 
-Handle running Popen process in a `cmdi` conformable way.
+Handle running Popen process.
 
 **Example usage:**
 
@@ -558,7 +551,7 @@ cp = resolve_popen(p, save_stdout=True, mute_stdout=True)
 
 -   `subprocess.CompletedProcess`
 
-Run Popen process in a `cmdi` conformable way.
+Run Popen process with convenient options.
 
 **Example usage:**
 
