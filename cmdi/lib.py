@@ -28,6 +28,7 @@ import ctypes
 import pty
 import re
 import termios
+from concurrent.futures import ThreadPoolExecutor
 
 from typing import NamedTuple, Union, TextIO, Optional, Iterable, List, Callable, Any, Dict, IO, Iterator, Tuple
 
