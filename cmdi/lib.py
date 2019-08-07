@@ -32,7 +32,6 @@ from concurrent.futures import ThreadPoolExecutor
 
 from typing import NamedTuple, Union, TextIO, Optional, Iterable, List, Callable, Any, Dict, IO, Iterator, Tuple
 
-
 # String Styling.
 fg_cyan = '\x1b[36m'
 fg_green = '\x1b[32m'
@@ -90,7 +89,8 @@ def strip_cmdargs(locals_: Dict[str, Any]) -> Dict[str, Any]:
 
     """
     keys = [
-        'kwargs', 'cmdargs', '_verbose', '_stdout', '_stderr', '_catch_err', '_color'
+        'kwargs', 'cmdargs', '_verbose', '_stdout', '_stderr', '_catch_err',
+        '_color'
     ]
 
     for key in keys:
@@ -276,15 +276,6 @@ def _set_color(status: Optional[str], color: Optional[int]) -> int:
         return StatusColor.red
 
 
-
-POPEN_DEFAULTS: Dict[str, Any] = {
-    "stdout": sp.PIPE,
-    "stderr": sp.PIPE,
-    "bufsize": 1,
-    "text": True,
-}
-
-
 def _enqueue_output(file: IO[str], queue: Queue) -> None:
     for line in iter(file.readline, ''):
         queue.put(line)
@@ -319,62 +310,3 @@ def read_popen_pipes(
             yield (out_line, err_line)
 
             time.sleep(interval / 1000)
-
-
-def resolve_popen(
-    p: sp.Popen,
-    save_stdout: bool = False,
-    save_stderr: bool = False,
-    mute_stdout: bool = False,
-    mute_stderr: bool = False,
-    catch: List[int] = [],
-    interval: int = 0,
-) -> sp.CompletedProcess:
-
-    args = p.args
-    from typing import cast
-
-    stdout = cast(str, "" if save_stdout else None)
-    stderr = cast(str, "" if save_stderr else None)
-
-    for out_line, err_line in read_popen_pipes(p, interval):
-
-        if not mute_stdout:
-            sys.stdout.write(out_line)
-        if not mute_stderr:
-            sys.stderr.write(err_line)
-        if save_stdout:
-            stdout += out_line
-        if save_stderr:
-            stderr += err_line
-
-    code = p.poll()
-
-    if code != 0 and code not in catch and '*' not in catch:
-        raise sp.CalledProcessError(code, args, stdout, stderr)
-
-    return sp.CompletedProcess(args, code, stdout, stderr)
-
-
-def run_subprocess(
-    args: List[str],
-    save_stdout: bool = False,
-    save_stderr: bool = False,
-    mute_stdout: bool = False,
-    mute_stderr: bool = False,
-    catch: List[int] = [],
-    interval: int = 0,
-    cwd: Optional[str] = None,
-    shell: bool = False,
-):
-    p = sp.Popen(args, shell=shell, cwd=cwd, **POPEN_DEFAULTS)
-
-    return resolve_popen(
-        p,
-        save_stdout=save_stdout,
-        save_stderr=save_stderr,
-        mute_stdout=mute_stdout,
-        mute_stderr=mute_stderr,
-        catch=catch,
-        interval=interval,
-    )
