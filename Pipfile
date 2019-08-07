@@ -10,7 +10,7 @@ sty = "*"
 pylint = "*"
 yapf = "*"
 docopt = "*"
-buildlib = "==2.3.3"
+buildlib = "==2.3.5"
 pytest = "*"
 mypy = "*"
 
