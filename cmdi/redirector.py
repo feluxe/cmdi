@@ -44,7 +44,7 @@ class _HighlevelRedirector:
     file: Optional[IO] = None
 
 
-libc = ctypes.CDLL("")
+libc = ctypes.CDLL(None) # type: ignore
 c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
 c_stderr = ctypes.c_void_p.in_dll(libc, 'stderr')
 
