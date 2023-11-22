@@ -13,47 +13,39 @@ A function that is decorated with `@command` can receive a set of sepcial keywor
 arguments (`_verbose=`, `_stdout=`, `_stderr=`, ...) and it always returns a `CmdResult()` object.
 
 """
-import os
-import fcntl
-import subprocess as sp
-from threading import Thread
-from queue import Queue, Empty
-from copy import deepcopy
-import time
-from contextlib import redirect_stdout, redirect_stderr, contextmanager
 import io
+import subprocess as sp
 import sys
-from dataclasses import dataclass
-import ctypes
-import pty
-import re
-import termios
+import time
 from concurrent.futures import ThreadPoolExecutor
-
-from typing import NamedTuple, Union, TextIO, Optional, Iterable, List, Callable, Any, Dict, IO, Iterator, Tuple
+from dataclasses import dataclass
+from queue import Empty, Queue
+from typing import IO, Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 # String Styling.
-fg_cyan = '\x1b[36m'
-fg_green = '\x1b[32m'
-fg_yellow = '\x1b[33m'
-fg_red = '\x1b[31m'
-fg_rs = '\x1b[39m'
+fg_cyan = "\x1b[36m"
+fg_green = "\x1b[32m"
+fg_yellow = "\x1b[33m"
+fg_red = "\x1b[31m"
+fg_rs = "\x1b[39m"
 
 
 class Status:
     """
     Can be used to set 'status' value for CmdResult.
     """
-    ok = 'Ok'
-    error = 'Error'
-    warning = 'Warning'
-    skip = 'Skip'
+
+    ok = "Ok"
+    error = "Error"
+    warning = "Warning"
+    skip = "Skip"
 
 
 class StatusColor:
     """
     Can be used to set 'color' value for CmdResult.
     """
+
     green = 0
     red = 1
     yellow = 2
@@ -65,7 +57,8 @@ class CmdResult:
     The Command Result Type.
     Each function that is decorated with @command returns this type.
     """
-    val: Optional[Any] = None
+
+    val: Any = None
     code: Optional[int] = None
     name: Optional[str] = None
     status: Optional[str] = None
@@ -88,19 +81,26 @@ def strip_cmdargs(locals_: Dict[str, Any]) -> Dict[str, Any]:
           return foo(strip_cmdargs(locals()))
 
     """
-    keys = [
-        'kwargs', 'cmdargs', '_verbose', '_stdout', '_stderr', '_catch_err',
-        '_color'
+    reserved_keys = [
+        "kwargs",
+        "cmdargs",
+        "_verbose",
+        "_stdout",
+        "_stderr",
+        "_catch_err",
+        "_color",
     ]
 
-    for key in keys:
+    for key in reserved_keys:
         if key in locals_:
-            if key == 'kwargs' and isinstance(key, dict):
-                for sub_k in key:
-                    if sub_k in keys:
-                        del key[sub_k]
+            if key == "kwargs" and isinstance(locals_[key], dict):
+                sub_dict = locals_[key]
+                for sub_k in sub_dict:
+                    if sub_k in reserved_keys:
+                        del sub_dict[sub_k]
             else:
                 del locals_[key]
+
     return locals_
 
 
@@ -109,12 +109,12 @@ def _print_title(
     color: bool = True,
     file: IO[str] = None,
 ) -> None:
-    sep = '\n' + (len(name) + 5) * '-'
+    sep = "\n" + (len(name) + 5) * "-"
 
     if color:
-        name = f'\n{fg_cyan}Cmd: {name}{sep}{fg_rs}'
+        name = f"\n{fg_cyan}Cmd: {name}{sep}{fg_rs}"
     else:
-        name = f'\nCmd: {name}{sep}'
+        name = f"\nCmd: {name}{sep}"
 
     print(name, file=file or sys.stdout)
 
@@ -159,14 +159,14 @@ def print_status(
 
     if color:
         if r.color == StatusColor.green:
-            print(f'{fg_green}{r.name}: {r.status}{fg_rs}', file=f)
+            print(f"{fg_green}{r.name}: {r.status}{fg_rs}", file=f)
         elif r.color == StatusColor.yellow:
-            print(f'{fg_yellow}{r.name}: {r.status}{fg_rs}', file=f)
+            print(f"{fg_yellow}{r.name}: {r.status}{fg_rs}", file=f)
         else:
-            print(f'{fg_red}{r.name}: {r.status}{fg_rs}', file=f)
+            print(f"{fg_red}{r.name}: {r.status}{fg_rs}", file=f)
 
     else:
-        print(f'{r.name}: {r.status}', file=f)
+        print(f"{r.name}: {r.status}", file=f)
 
 
 def print_result(
@@ -235,14 +235,14 @@ def print_summary(
 
     if headline:
         if color:
-            print(fg_cyan + '\nSummary\n' + 7 * '-' + fg_rs, file=f)
+            print(fg_cyan + "\nSummary\n" + 7 * "-" + fg_rs, file=f)
         else:
-            print('\nSummary\n' + 7 * '-', file=f)
+            print("\nSummary\n" + 7 * "-", file=f)
 
     if isinstance(results, CmdResult):
         print_status(results, color=color, file=f)
 
-    elif isinstance(results, Iterable):
+    elif isinstance(results, Iterable): # pylint: disable=isinstance-second-argument-not-valid-type
         for item in results:
             print_summary(item, color=color, headline=False, file=f)
 
@@ -277,7 +277,7 @@ def _set_color(status: Optional[str], color: Optional[int]) -> int:
 
 
 def _enqueue_output(file: IO[str], queue: Queue) -> None:
-    for line in iter(file.readline, ''):
+    for line in iter(file.readline, ""):
         queue.put(line)
     file.close()
 
@@ -299,7 +299,7 @@ def read_popen_pipes(
             if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
                 break
 
-            out_line = err_line = ''
+            out_line = err_line = ""
 
             try:
                 out_line = q_stdout.get_nowait()
