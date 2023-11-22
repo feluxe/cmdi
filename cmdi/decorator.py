@@ -1,14 +1,20 @@
 import io
-import os
-import sys
-from functools import wraps
 import subprocess as sp
-from dataclasses import dataclass
+import sys
 from copy import deepcopy
+from dataclasses import dataclass
+from functools import wraps
+from typing import IO, Any, Callable, Optional, TypeVar
 
-from typing import Optional, IO, Callable, Union
-
-from .lib import CmdResult, Status, StatusColor, _print_title, _set_color, _set_status, print_status
+from .lib import (
+    CmdResult,
+    Status,
+    StatusColor,
+    _print_title,
+    _set_color,
+    _set_status,
+    print_status,
+)
 from .redirector import _STD, no_redirector, redirect_stdfiles
 
 STDOUT = _STD.OUT
@@ -47,7 +53,10 @@ def _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
         )
 
 
-def command(decorated_func: Callable):
+Func = TypeVar("Func", bound=Callable[..., Any])
+
+
+def command(decorated_func: Func) -> Callable[..., CmdResult]:
     """
     The @command decorator that turns a function into a command.
     """
@@ -57,11 +66,11 @@ def command(decorated_func: Callable):
 
         # Set default parameters.
         name = decorated_func.__name__
-        catch_err = kwargs.get('_catch_err', True)
-        verbose = kwargs.get('_verbose', True)
-        colorful = kwargs.get('_color', True)
-        stdout_pipe = kwargs.get('_stdout')
-        stderr_pipe = kwargs.get('_stderr')
+        catch_err = kwargs.get("_catch_err", True)
+        verbose = kwargs.get("_verbose", True)
+        colorful = kwargs.get("_color", True)
+        stdout_pipe = kwargs.get("_stdout")
+        stderr_pipe = kwargs.get("_stderr")
 
         if verbose:
             _print_title(name, color=colorful)
@@ -73,16 +82,15 @@ def command(decorated_func: Callable):
         else:
             stderr_logfile = _get_logfile(_STD.ERR, stderr_pipe)
 
-        with _get_redirector(
-            stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile
-        ):
+        with _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
 
             try:
 
                 cleaned_kwargs = {
                     k: v
-                    for k, v in kwargs.items() if k not in
-                    ['_stdout', '_stderr', '_catch_err', '_verbose', '_color']
+                    for k, v in kwargs.items()
+                    if k
+                    not in ["_stdout", "_stderr", "_catch_err", "_verbose", "_color"]
                 }
 
                 item = decorated_func(*args, **cleaned_kwargs)
@@ -119,11 +127,11 @@ def command(decorated_func: Callable):
 
             except sp.CalledProcessError as e:
 
-                # print(e, file=err)
-                print(e, file=sys.stderr)
+                if e.stderr:
+                    print(e.stderr, file=sys.stderr)
 
                 if not catch_err:
-                    sys.exit(1)
+                    raise e
 
                 result = CmdResult(
                     val=None,
@@ -133,7 +141,7 @@ def command(decorated_func: Callable):
                     color=StatusColor.red,
                 )
 
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-except
 
                 print(e, file=sys.stderr)
 
@@ -151,7 +159,7 @@ def command(decorated_func: Callable):
         if isinstance(stdout_logfile, (io.StringIO, io.BytesIO)):
             result.stdout = stdout_logfile.getvalue()
         if isinstance(stderr_logfile, (io.StringIO, io.BytesIO)):
-            if not kwargs.get('_stderr') == _STD.OUT:
+            if not kwargs.get("_stderr") == _STD.OUT:
                 result.stderr = stderr_logfile.getvalue()
 
         if verbose:
