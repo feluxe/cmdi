@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import IO, Any, Callable, Optional, TypeVar
 
-from .lib import (
+from cmdi.lib import (
     CmdResult,
     Status,
     StatusColor,
@@ -15,7 +15,7 @@ from .lib import (
     _set_status,
     print_status,
 )
-from .redirector import _STD, no_redirector, redirect_stdfiles
+from cmdi.redirector import _STD, no_redirector, redirect_stdfiles
 
 STDOUT = _STD.OUT
 
@@ -30,7 +30,6 @@ class Pipe:
 
 
 def _get_logfile(stdtype, args) -> Optional[IO]:
-
     if not args:
         return None
 
@@ -44,7 +43,6 @@ def _get_logfile(stdtype, args) -> Optional[IO]:
 
 
 def _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
-
     if not stdout_pipe and not stderr_pipe:
         return no_redirector()
     else:
@@ -63,7 +61,6 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
 
     @wraps(decorated_func)
     def command_wrapper(*args, **kwargs) -> CmdResult:
-
         # Set default parameters.
         name = decorated_func.__name__
         catch_err = kwargs.get("_catch_err", True)
@@ -83,9 +80,7 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
             stderr_logfile = _get_logfile(_STD.ERR, stderr_pipe)
 
         with _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
-
             try:
-
                 cleaned_kwargs = {
                     k: v
                     for k, v in kwargs.items()
@@ -99,7 +94,6 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
                 # If the user returns a CustomCmdResult, we take it and
                 # apply default values if necessary.
                 if isinstance(item, CmdResult):
-
                     val = item.val
                     code = item.code or 0
                     status = _set_status(item.status, code)
@@ -116,7 +110,6 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
                 # If the return type is none of CmdResult/CustomCmdResult,
                 # we wrap the default CmdResult around the return value.
                 else:
-
                     result = CmdResult(
                         val=item,
                         code=0,
@@ -126,7 +119,6 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
                     )
 
             except sp.CalledProcessError as e:
-
                 if e.stderr:
                     print(e.stderr, file=sys.stderr)
 
@@ -142,7 +134,6 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
                 )
 
             except Exception as e:  # pylint: disable=broad-except
-
                 print(e, file=sys.stderr)
 
                 if not catch_err:

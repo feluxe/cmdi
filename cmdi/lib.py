@@ -242,7 +242,9 @@ def print_summary(
     if isinstance(results, CmdResult):
         print_status(results, color=color, file=f)
 
-    elif isinstance(results, Iterable): # pylint: disable=isinstance-second-argument-not-valid-type
+    elif isinstance(
+        results, Iterable
+    ):  # pylint: disable=isinstance-second-argument-not-valid-type
         for item in results:
             print_summary(item, color=color, headline=False, file=f)
 
@@ -286,7 +288,6 @@ def read_popen_pipes(
     p: sp.Popen,
     interval: int = 0,
 ) -> Iterator[Tuple[str, str]]:
-
     with ThreadPoolExecutor(2) as pool:
         q_stdout: Queue = Queue()
         q_stderr: Queue = Queue()
@@ -295,7 +296,6 @@ def read_popen_pipes(
         pool.submit(_enqueue_output, p.stderr, q_stderr)
 
         while True:
-
             if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
                 break
 

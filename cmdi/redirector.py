@@ -44,9 +44,9 @@ class _HighlevelRedirector:
     file: Optional[IO] = None
 
 
-libc = ctypes.CDLL(None) # type: ignore
-c_stdout = ctypes.c_void_p.in_dll(libc, 'stdout')
-c_stderr = ctypes.c_void_p.in_dll(libc, 'stderr')
+libc = ctypes.CDLL(None)  # type: ignore
+c_stdout = ctypes.c_void_p.in_dll(libc, "stdout")
+c_stderr = ctypes.c_void_p.in_dll(libc, "stderr")
 
 
 def flush_c(stdtype: _STD):
@@ -57,7 +57,6 @@ def flush_c(stdtype: _STD):
 
 
 def _setup_lowlevel_redirector(stdtype):
-
     if stdtype == _STD.OUT:
         stdfile = sys.stdout
     else:
@@ -81,10 +80,10 @@ def _setup_lowlevel_redirector(stdtype):
     termios.tcsetattr(pty_slave_fd, termios.TCSANOW, attrs)
 
     # Open original stdfile.
-    saved_stdfile = os.fdopen(saved_stdfile_fd, 'wb', 0)
+    saved_stdfile = os.fdopen(saved_stdfile_fd, "wb", 0)
 
     # Open pseudo terminal reader as non-blocking.
-    pty_master_file = os.fdopen(pty_master_fd, 'rb', buffering=0)
+    pty_master_file = os.fdopen(pty_master_fd, "rb", buffering=0)
     fl = fcntl.fcntl(pty_master_fd, fcntl.F_GETFL)
     fcntl.fcntl(pty_master_fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
@@ -96,16 +95,22 @@ def _setup_lowlevel_redirector(stdtype):
     stdfile.flush()
     os.dup2(pty_slave_fd, stdfile.fileno())
 
-    return original_stdfile_fd, pty_master_fd, pty_master_file, saved_stdfile_fd, saved_stdfile
+    return (
+        original_stdfile_fd,
+        pty_master_fd,
+        pty_master_file,
+        saved_stdfile_fd,
+        saved_stdfile,
+    )
 
 
 def remove_ansi(line: bytes, text=False) -> bytes:
     if text:
-        ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]')
-        s = ansi_escape.sub('', line)
+        ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+        s = ansi_escape.sub("", line)
     else:
-        ansi_escape = re.compile(br'(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]')
-        s = ansi_escape.sub(b'', line)
+        ansi_escape = re.compile(rb"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+        s = ansi_escape.sub(b"", line)
     return s
 
 
@@ -137,7 +142,6 @@ def _save_stream(
     data = None
 
     while True:
-
         if should_break > 0 and not data:
             if should_break < 3:
                 should_break += 1
@@ -147,13 +151,10 @@ def _save_stream(
         data = None
 
         for fd in select(readable, [], [], 0)[0]:
-
             data = os.read(fd, 4096)
 
             for line in data.splitlines(keepends=True):
-
                 if stdout and fd == stdout.master_fd:
-
                     if not stdout.mute:
                         stdout.saved_std_file.write(line)
                         stdout.saved_std_file.flush()
@@ -187,9 +188,7 @@ def _save_stream(
         time.sleep(0.001)
 
 
-def _remove_lowlevel_redirector(
-    stdtype, saved_stdfile_fd, original_stdfile_fd
-):
+def _remove_lowlevel_redirector(stdtype, saved_stdfile_fd, original_stdfile_fd):
     # # Flush the C-level buffer to redirected std[out|err].
     flush_c(stdtype)
 
@@ -205,7 +204,7 @@ def _remove_lowlevel_redirector(
 import io
 
 
-class DuplexWriter():
+class DuplexWriter:
     """
     This is a custom file writer, that writes to a StringIO and std[out|err] at the
     same time.
@@ -228,49 +227,43 @@ class DuplexWriter():
             s = remove_ansi(s, text=True)
 
         if not self.conf.text:
-            s = bytes(s, 'utf-8')
+            s = bytes(s, "utf-8")
 
         self.logfile.write(s)
 
 
 @contextmanager
 def redirect_stdfiles(
-    stdout_conf=None,
-    stdout_logfile=None,
-    stderr_conf=None,
-    stderr_logfile=None
+    stdout_conf=None, stdout_logfile=None, stderr_conf=None, stderr_logfile=None
 ):
     stdout_low = None
     stderr_low = None
     stdout_high = None
     stderr_high = None
 
-    if stdout_conf and stdout_conf.dup and\
-       (stdout_conf.save or stdout_conf.mute):
+    if stdout_conf and stdout_conf.dup and (stdout_conf.save or stdout_conf.mute):
         stdout_low = _LowlevelRedirector(
             save=stdout_conf.save,
             text=stdout_conf.text,
             tty=stdout_conf.tty,
             mute=stdout_conf.mute,
-            logfile=stdout_logfile
+            logfile=stdout_logfile,
         )
     elif stdout_conf and (stdout_conf.save or stdout_conf.mute):
         stdout_high = _HighlevelRedirector(stdout_logfile)
 
-    if stderr_conf and stderr_conf.dup and\
-       (stderr_conf.save or stderr_conf.mute):
+    if stderr_conf and stderr_conf.dup and (stderr_conf.save or stderr_conf.mute):
         stderr_low = _LowlevelRedirector(
             save=stderr_conf.save,
             text=stderr_conf.text,
             tty=stderr_conf.tty,
             mute=stderr_conf.mute,
-            logfile=stderr_logfile
+            logfile=stderr_logfile,
         )
     elif stderr_conf and (stderr_conf.save or stderr_conf.mute):
         stderr_high = _HighlevelRedirector(stderr_logfile)
 
     try:
-
         if stdout_low:
             r = _setup_lowlevel_redirector(_STD.OUT)
             stdout_low.original_std_fd = r[0]
@@ -306,7 +299,6 @@ def redirect_stdfiles(
         yield
 
     finally:
-
         if stdout_high:
             sys.stdout = sys.__stdout__
 
@@ -314,17 +306,14 @@ def redirect_stdfiles(
             sys.stderr = sys.__stderr__
 
         if stdout_low or stderr_low:
-
             if stdout_low:
                 _remove_lowlevel_redirector(
-                    _STD.OUT, stdout_low.saved_std_fd,
-                    stdout_low.original_std_fd
+                    _STD.OUT, stdout_low.saved_std_fd, stdout_low.original_std_fd
                 )
 
             if stderr_low:
                 _remove_lowlevel_redirector(
-                    _STD.ERR, stderr_low.saved_std_fd,
-                    stderr_low.original_std_fd
+                    _STD.ERR, stderr_low.saved_std_fd, stderr_low.original_std_fd
                 )
 
             queue.put(1)  # Send stop signal.

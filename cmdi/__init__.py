@@ -1,2 +1,2 @@
-from .lib import *
-from .decorator import command, Pipe, STDOUT
+from cmdi.lib import *
+from cmdi.decorator import command, Pipe, STDOUT
