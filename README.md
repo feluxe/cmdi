@@ -523,3 +523,10 @@ for out_line, err_line in read_popen_pipes:
 
 code = p.poll()
 ```
+
+
+## Run Tests for this library
+
+```
+poetry run pytest --capture=no tests
+```
