@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "cmdi"
+version = "1.1.4"
+description = "A command interface"
+authors = ["feluxe <felix@meyerwolters.de>"]
+license = "Apache License 2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+sty = "==1.0.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
