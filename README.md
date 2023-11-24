@@ -1,21 +1,24 @@
 # cmdi - Command Interface
 
+
 ## Description
 
 A decorator `@command` that applies a special interface called the _Command Interface_ to its decorated function. Initially written for the _buildlib_.
 
-The _Command Interface_ allows you to control the exectuion of a function via the _Command Interface_:
+The _Command Interface_ allows you to control the execution of a function via the _Command Interface_:
 
--   It allows you to save/redirect/mute output streams (stdout/stderr) for its decorated function. This works on file descriptor level, thus it's possible to redirect output of subproesses and C code.
+-   It allows you to save/redirect/mute output streams (stdout/stderr) for its decorated function. This works on file descriptor level, thus it's possible to redirect output of subprocesses and C code.
 -   It allows you to catch exceptions for its decorated function and return them with the `CmdResult()`, including _return codes_, _error messages_ and colored _status messages_.
 -   It allows you to print status messages and summaries for a command at runtime.
 -   And more...
 
-A function that is decorated with `@command` can receive a set of sepcial keyword arguments (`_verbose=...`, `_stdout=...`, `_stderr=...`, `catch_err=...`, etc.) and it returns a `CmdResult()` object.
+A function that is decorated with `@command` can receive a set of special keyword arguments (`_verbose=...`, `_stdout=...`, `_stderr=...`, `catch_err=...`, etc.) and it returns a `CmdResult()` object.
+
 
 ## Requirements
 
 Python `>= 3.7`
+
 
 ## Install
 
@@ -23,7 +26,9 @@ Python `>= 3.7`
 pip install cmdi
 ```
 
+
 ## Usage
+
 
 ### The `@command` decorator
 
@@ -67,6 +72,7 @@ CmdResult(
 )
 ```
 
+
 ### Command Function Arguments
 
 You can define the behaviour of a command function using a set of special keyword argumnets that are applied to the decorated function.
@@ -85,6 +91,7 @@ print(result.stdout) # prints caught output.
 ```
 
 More about special keyword arguments can be found in the API documentation below.
+
 
 ### Customizing the Result of a command function
 
@@ -111,6 +118,7 @@ def foo_cmd(x: str, **cmdargs) -> CmdResult:
 ```
 
 **Note:** In the example above, we return a customized `CmdResult` for which we only customize the fields `val` and `code`. You can customize every field of the `CmdResult` object (optionally). The fields you leave out are set automatically.
+
 
 ### Command Interface Wrappers
 
@@ -168,6 +176,7 @@ def foo(x) -> int:
 
 ```
 
+
 ## API
 
 ### decorator `@command`
@@ -175,6 +184,7 @@ def foo(x) -> int:
 This decorator allows you to apply the _command interface_ to a function.
 
 A function decorated with `@command` can take the following keyword arguments:
+
 
 #### `_verbose: bool = True`
 
@@ -186,6 +196,7 @@ Enable/Disable printing of header/status message during runtime.
 result = my_command_func("some_arg", _verbose=False)
 ```
 
+
 #### `_color: bool = True`
 
 Enable/Disable color for header/status message.
@@ -195,6 +206,7 @@ Enable/Disable color for header/status message.
 ```python
 result = my_command_func("some_arg", _color=False)
 ```
+
 
 #### `_stdout: Optional[Pipe] = None`
 
@@ -211,6 +223,7 @@ result = my_command_func('foo', _stdout=pipe)
 
 print(result.stdout) # Prints the caught ouput.
 ```
+
 
 #### `_stderr: Union[Optional[Pipe], STDOUT] = None`
 
@@ -236,6 +249,7 @@ from cmdi import STDOUT
 result = my_command_func('foo', _stderr=STDOUT))
 ```
 
+
 #### `_catch_err: bool = True`
 
 Catch errors from child function.
@@ -254,6 +268,7 @@ r.stdout # The stderr output from the function call.
 
 ```
 
+
 ### dataclass `CmdResult()`
 
 The command result object.
@@ -271,6 +286,7 @@ class CmdResult:
     out: Optional[TextIO]
     err: Optional[TextIO]
 ```
+
 
 ### dataclass `Pipe()`
 
@@ -298,6 +314,7 @@ print(result.stdout) # prints caught output.
 print(result.stderr) # prints caught output.
 ```
 
+
 ### Redirect ouput of functions that run subprocesses or C code.
 
 If you want to redirect the ouput of a function that runs a subprocess or calls C code, you have to use a `Pipe` with the argument `dup=True`. This will catch the output of stdout/stderr at a lower level (by duping file descriptors):
@@ -313,6 +330,7 @@ def foo(x, **cmdargs) -> CmdResult:
 # Catch stdout of the function via low level redirect:
 foo(_stdout=Pipe(dup=True))
 ```
+
 
 ### function `strip_cmdargs(locals_)`
 
@@ -338,6 +356,7 @@ def foo(x):
 def foo_cmd(x, **cmdargs):
     return foo(strip_cmdargs(locals()))
 ```
+
 
 ### function `print_title(result, color, file)`
 
@@ -368,6 +387,7 @@ Cmd: my_cmd
 -----------
 ```
 
+
 ### function `print_status(result, color, file)`
 
 **Parameter**
@@ -395,6 +415,7 @@ Output:
 ```
 my_cmd: Ok
 ```
+
 
 ### function `print_result(result, color, file)`
 
@@ -429,6 +450,7 @@ Stderr:
 Some err
 foo_cmd3: Ok
 ```
+
 
 ### function `print_summary(results, color, headline, file)`
 
@@ -473,6 +495,7 @@ Cmd: my_baz_cmd
 stdout of baz function...
 my_baz_cmd: Ok
 ```
+
 
 ### function `read_popen_pipes(p, interval)`
 
