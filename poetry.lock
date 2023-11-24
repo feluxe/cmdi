@@ -110,12 +110,12 @@ testing = ["argcomplete", "attrs (>=19.2.0)", "hypothesis (>=3.56)", "mock", "no
 
 [[package]]
 name = "sty"
-version = "1.0.4"
+version = "1.0.5"
 description = "String styling for your terminal"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7,<4.0"
 files = [
-    {file = "sty-1.0.4-py3-none-any.whl", hash = "sha256:3e3352f05770a37e11c9dfc303cbccb1c6acc13710e15d181cb43be7df89f8ea"},
+    {file = "sty-1.0.5-py3-none-any.whl", hash = "sha256:2022d63893a5458e424dce133368c1a1c6818ae167ee54482f2428a22bc7b403"},
 ]
 
 [[package]]
@@ -158,4 +158,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "f86bd51821169e583bf4c4e1f093c987f764347508757af150a16d5f52006522"
+content-hash = "fc1fb36dfc9d1e4622beed3162bd5b46c26ed3dcd3975ac7dc1df2a1c8094af8"
