@@ -4,7 +4,7 @@ to its decorated function. Initially written for the _buildlib_.
 
 The _Command Interface_ allows you to control the exectuion of a function:
 
--   It allows you to save/direct output streams (stdout/stderr) for its decorated function.
+-   It allows you to save/redirect output streams (stdout/stderr) for its decorated function.
 -   It allows you to catch exceptions for its decorated function and return them with
     the `CmdResult()`, including _return codes_, _error messages_ and colored _status messages_.
 -   It allows you to print statuses and summaries for the command results.
@@ -17,10 +17,23 @@ import io
 import subprocess as sp
 import sys
 import time
+from enum import Enum
+
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from queue import Empty, Queue
-from typing import IO, Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import (
+    IO,
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    TypeVar,
+    Generic,
+)
 
 # String Styling.
 fg_cyan = "\x1b[36m"
@@ -30,18 +43,21 @@ fg_red = "\x1b[31m"
 fg_rs = "\x1b[39m"
 
 
-class Status:
+class Status(Enum):
     """
     Can be used to set 'status' value for CmdResult.
     """
 
-    ok = "Ok"
-    error = "Error"
-    warning = "Warning"
-    skip = "Skip"
+    ok = 0
+    error = 1
+    warning = 2
+    skip = 3
+
+    def __str__(self):
+        return str(self.name.capitalize())
 
 
-class StatusColor:
+class StatusColor(Enum):
     """
     Can be used to set 'color' value for CmdResult.
     """
@@ -50,21 +66,72 @@ class StatusColor:
     red = 1
     yellow = 2
 
+    def __str__(self):
+        return str(self.name.capitalize())
 
-@dataclass
-class CmdResult:
+
+def _set_status(status: Optional[Status], code: Optional[int]) -> Status:
+    """
+    Determine Status from given 'status' or given 'return code'.
+    """
+    try:
+        return Status(status)
+    except ValueError:
+        is_int = isinstance(code, int)
+        if is_int and code == 0:
+            return Status.ok
+        elif is_int:
+            return Status.error
+        else:
+            raise ValueError(f"Unknown return status.")
+
+
+def _set_color(color: Optional[StatusColor], status: Optional[Status]) -> StatusColor:
+    """
+    Determine StatusColor from given 'color' or given 'status'.
+    """
+    try:
+        return StatusColor(color)
+    except ValueError:
+        if status in [Status.ok, Status.skip]:
+            return StatusColor.green
+        elif status == Status.warning:
+            return StatusColor.yellow
+        elif status == Status.error:
+            return StatusColor.red
+        else:
+            raise ValueError("Unknown status color.")
+
+
+T = TypeVar("T")
+
+
+class CmdResult(Generic[T]):
     """
     The Command Result Type.
     Each function that is decorated with @command returns this type.
     """
 
-    val: Any = None
-    code: Optional[int] = None
-    name: Optional[str] = None
-    status: Optional[str] = None
-    color: Optional[int] = None
-    stdout: Optional[Union[str, bytes]] = None
-    stderr: Optional[Union[str, bytes]] = None
+    def __init__(
+        self,
+        val: T,
+        code: int,
+        name: str,
+        status: Optional[Status],
+        color: Optional[StatusColor],
+        stdout: Optional[Union[str, bytes]] = None,
+        stderr: Optional[Union[str, bytes]] = None,
+    ):
+        status = _set_status(status, code)
+        color = _set_color(color, status)
+
+        self.val: T = val
+        self.code: int = code
+        self.name: str = name
+        self.status: Status = status
+        self.color: StatusColor = color
+        self.stdout: Optional[Union[str, bytes]] = stdout
+        self.stderr: Optional[Union[str, bytes]] = stderr
 
 
 def strip_cmdargs(locals_: Dict[str, Any]) -> Dict[str, Any]:
@@ -107,7 +174,7 @@ def strip_cmdargs(locals_: Dict[str, Any]) -> Dict[str, Any]:
 def _print_title(
     name: str,
     color: bool = True,
-    file: IO[str] = None,
+    file: Optional[IO[str]] = None,
 ) -> None:
     sep = "\n" + (len(name) + 5) * "-"
 
@@ -250,32 +317,6 @@ def print_summary(
 
     else:
         return
-
-
-def _set_status(status: Optional[str], code: Optional[int]) -> str:
-    """
-    Automatically determine status value.
-    """
-    if status is not None:
-        return status
-    elif code == 0:
-        return Status.ok
-    else:
-        return Status.error
-
-
-def _set_color(status: Optional[str], color: Optional[int]) -> int:
-    """
-    Automatically determine color value.
-    """
-    if color:
-        return color
-    elif status in [Status.ok, Status.skip]:
-        return StatusColor.green
-    elif status == Status.warning:
-        return StatusColor.yellow
-    else:
-        return StatusColor.red
 
 
 def _enqueue_output(file: IO[str], queue: Queue) -> None:

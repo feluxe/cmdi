@@ -10,10 +10,8 @@ from cmdi.lib import (
     CmdResult,
     Status,
     StatusColor,
-    _print_title,
-    _set_color,
-    _set_status,
     print_status,
+    _print_title,
 )
 from cmdi.redirector import _STD, no_redirector, redirect_stdfiles
 
@@ -29,7 +27,7 @@ class Pipe:
     mute: bool = False
 
 
-def _get_logfile(stdtype, args) -> Optional[IO]:
+def _get_logfile(args) -> Optional[IO]:
     if not args:
         return None
 
@@ -51,10 +49,10 @@ def _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
         )
 
 
-Func = TypeVar("Func", bound=Callable[..., Any])
+T = TypeVar("T")
 
 
-def command(decorated_func: Func) -> Callable[..., CmdResult]:
+def command(decorated_func: Callable[..., T]) -> Callable[..., CmdResult[T]]:
     """
     The @command decorator that turns a function into a command.
     """
@@ -72,12 +70,12 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
         if verbose:
             _print_title(name, color=colorful)
 
-        stdout_logfile = _get_logfile(_STD.OUT, stdout_pipe)
+        stdout_logfile = _get_logfile(stdout_pipe)
         if stderr_pipe == _STD.OUT:
             stderr_logfile = stdout_logfile
             stderr_pipe = deepcopy(stdout_pipe)
         else:
-            stderr_logfile = _get_logfile(_STD.ERR, stderr_pipe)
+            stderr_logfile = _get_logfile(stderr_pipe)
 
         with _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
             try:
@@ -96,14 +94,10 @@ def command(decorated_func: Func) -> Callable[..., CmdResult]:
                 if isinstance(item, CmdResult):
                     val = item.val
                     code = item.code or 0
-                    status = _set_status(item.status, code)
-                    color = _set_color(status, item.color)
 
                     result = CmdResult(
                         val=val,
                         code=code,
-                        status=status,
-                        color=color,
                         name=name,
                     )
 

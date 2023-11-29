@@ -13,7 +13,7 @@ from queue import Queue, Empty
 from dataclasses import dataclass
 from enum import Enum
 
-from typing import Optional, IO
+from typing import Optional, IO, Union
 
 
 class _STD(Enum):
@@ -104,14 +104,14 @@ def _setup_lowlevel_redirector(stdtype):
     )
 
 
-def remove_ansi(line: bytes, text=False) -> bytes:
-    if text:
-        ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
-        s = ansi_escape.sub("", line)
-    else:
-        ansi_escape = re.compile(rb"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
-        s = ansi_escape.sub(b"", line)
-    return s
+def remove_ansi_str(line: str) -> str:
+    ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", line)
+
+
+def remove_ansi_bytes(line: bytes) -> bytes:
+    ansi_escape = re.compile(rb"(\x9B|\x1B\[)[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub(b"", line)
 
 
 def _save_stream(
@@ -155,29 +155,31 @@ def _save_stream(
 
             for line in data.splitlines(keepends=True):
                 if stdout and fd == stdout.master_fd:
-                    if not stdout.mute:
+                    if not stdout.mute and stdout.saved_std_file:
                         stdout.saved_std_file.write(line)
                         stdout.saved_std_file.flush()
 
                     if not stdout.tty:
-                        line = remove_ansi(line)
+                        line = remove_ansi_bytes(line)
 
                     if stdout.text:
                         line = line.decode()
 
-                    stdout.logfile.write(line)
-                else:
-                    if not stderr.mute:
+                    if stdout.logfile:
+                        stdout.logfile.write(line)
+                elif stderr:
+                    if not stderr.mute and stderr.saved_std_file:
                         stderr.saved_std_file.write(line)
                         stderr.saved_std_file.flush()
 
                     if not stderr.tty:
-                        line = remove_ansi(line)
+                        line = remove_ansi_bytes(line)
 
                     if stderr.text:
                         line = line.decode()
 
-                    stderr.logfile.write(line)
+                    if stderr.logfile:
+                        stderr.logfile.write(line)
 
         try:
             queue.get(block=False)
@@ -224,7 +226,7 @@ class DuplexWriter:
             self.stdfile.write(s)
 
         if not self.conf.tty:
-            s = remove_ansi(s, text=True)
+            s = remove_ansi_str(s)
 
         if not self.conf.text:
             s = bytes(s, "utf-8")
@@ -234,7 +236,10 @@ class DuplexWriter:
 
 @contextmanager
 def redirect_stdfiles(
-    stdout_conf=None, stdout_logfile=None, stderr_conf=None, stderr_logfile=None
+    stdout_conf=None,
+    stdout_logfile=None,
+    stderr_conf=None,
+    stderr_logfile=None,
 ):
     stdout_low = None
     stderr_low = None
