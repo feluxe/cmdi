@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["command", "interface", "wrapper", "handler", "capture", "stdout", "stderr"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
