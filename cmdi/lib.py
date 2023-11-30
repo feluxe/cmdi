@@ -116,7 +116,7 @@ class CmdResult(Generic[T]):
         self,
         val: T,
         code: int,
-        name: str,
+        name: Optional[str],
         status: Optional[Status],
         color: Optional[StatusColor],
         stdout: Optional[Union[str, bytes]] = None,
@@ -127,7 +127,7 @@ class CmdResult(Generic[T]):
 
         self.val: T = val
         self.code: int = code
-        self.name: str = name
+        self.name: Optional[str] = name
         self.status: Status = status
         self.color: StatusColor = color
         self.stdout: Optional[Union[str, bytes]] = stdout

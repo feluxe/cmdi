@@ -94,6 +94,7 @@ def command(decorated_func: Callable[..., T]) -> Callable[..., CmdResult[T]]:
                 if isinstance(item, CmdResult):
                     val = item.val
                     code = item.code or 0
+                    name = item.name or name
 
                     result = CmdResult(
                         val=val,
