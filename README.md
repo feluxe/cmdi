@@ -10,7 +10,7 @@ A decorator `@command` that applies a handy interface called the _Command Interf
 - to print status messages and summaries for a command at runtime.
 - And more...
 
-A function that is decorated with `@command` can receive a set of special keyword arguments (`_verbose=...`, `_stdout=...`, `_stderr=...`, `catch_err=...`, etc.) and it returns a `CmdResult()` object.
+A function that is decorated with `@command` can receive a set of special keyword arguments (`_verbose=...`, `_stdout=...`, `_stderr=...`, `_catch_err=...`, etc.) and it returns a `CmdResult()` object.
 
 
 ## Requirements
