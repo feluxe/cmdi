@@ -3,14 +3,12 @@
 
 ## Description
 
-A decorator `@command` that applies a special interface called the _Command Interface_ to its decorated function. Initially written for the _buildlib_.
+A decorator `@command` that applies a handy interface called the _Command Interface_ to its decorated function. The _Command Interface_ allows you:
 
-The _Command Interface_ allows you to control the execution of a function via the _Command Interface_:
-
--   It allows you to save/redirect/mute output streams (stdout/stderr) for its decorated function. This works on file descriptor level. It's possible to redirect output of subprocesses and C code as well.
--   It allows you to catch exceptions for its decorated function and return them with the `CmdResult()`, including _return codes_, _error messages_ and colored _status messages_.
--   It allows you to print status messages and summaries for a command at runtime.
--   And more...
+- to save/redirect/mute output streams (stdout/stderr) for its decorated function. This works on file descriptor level. It's possible to redirect output of subprocesses and C code as well.
+- to catch exceptions for its decorated function and return them with the `CmdResult()`, including _return codes_, _error messages_ and colored _status messages_.
+- to print status messages and summaries for a command at runtime.
+- And more...
 
 A function that is decorated with `@command` can receive a set of special keyword arguments (`_verbose=...`, `_stdout=...`, `_stderr=...`, `catch_err=...`, etc.) and it returns a `CmdResult()` object.
 
