@@ -1,13 +1,17 @@
+[build-system]
+requires = [ "poetry-core",]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "cmdi"
-version = "1.1.4"
+version = "2.0.0"
 description = "A command interface"
-authors = ["feluxe <felix@meyerwolters.de>"]
-maintainers = ["feluxe <felix@meyerwolters.de>"]
+authors = [ "feluxe <felix@meyerwolters.de>",]
+maintainers = [ "feluxe <felix@meyerwolters.de>",]
 repository = "https://github.com/feluxe/cmdi"
 license = "Apache License 2.0"
 readme = "README.md"
-keywords = ["command", "interface", "wrapper", "handler", "capture", "stdout", "stderr"]
+keywords = [ "command", "interface", "wrapper", "handler", "capture", "stdout", "stderr",]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -15,7 +19,3 @@ python = "^3.9"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
 sty = "^1.0.5"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
