@@ -4,7 +4,7 @@
 
 This is a major release with breaking changes. `cmdi` follows *semver*. If you don't want to upgrade, you can stay on `2.x.x`, which has proven stable for most use cases.
 
-### Breaking Changes
+Breaking Changes:
 
 - Renamed `Pipe.dup` to `Pipe.fd` for redirecting output at the file descriptor level.
 - Renamed `CmdResult.val` to `CmdResult.value`.
@@ -12,7 +12,7 @@ This is a major release with breaking changes. `cmdi` follows *semver*. If you d
   - Previously: `CmdResult.stdout` and `CmdResult.stderr`
   - Now: For string output: `CmdResult.stdout`, `CmdResult.stderr`; for bytes output: `CmdResult.stdout_b`, `CmdResult.stderr_b`.
 
-### Other Changes
+Other Changes:
 
 - Added `CmdArgs` for better argument typing.
 - Completed typing (should be 100% now).
