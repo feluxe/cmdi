@@ -24,7 +24,6 @@ Other Changes:
 
 ## Contents
 
-- [Release 3.0.0 (October 09, 2025)](#release-300-october-09-2025)
 - [Description](#description)
 - [Requirements](#requirements)
 - [Install](#install)
