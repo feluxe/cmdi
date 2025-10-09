@@ -1,9 +1,33 @@
 # cmdi - Command Interface
 
+# can you (slightly) improve the readablilty of the 'realse' section, ai!
+
+## Release 3.0.0 (October 09. 2025)
+
+This is a major release with breaking changes. `cmdi` follows *semver*, if you don't like to upgrade you can just stay on `2.x.x`, which seemed to be stable enough.
+
+**Breaking Changes**
+
+- Rename `Pipe.dup` into `Pipe.fd` for redirecting output on file descriptor level.
+- Rename `CmdResult.val` into `CmdResult.value`
+- `CmdResult` changes for better handling of `str` output vs `bytes` output:
+  - Before we had `CmdResult.stdout` and `CmdResult.stderr`
+  - Now we have: These for string output:`CmdResult.stdout`, `CmdResult.stderr` and these for bytes output: `CmdResult.stdout_b`, `CmdResult.stderr_b`.
+
+**Other Changes**
+
+- Add `CmdArgs` for batter argument typing
+- Complete typing (I think it's 100% now)
+- Stricter typing
+- More doc-strings
+- Refactor code
+- Remove wildcard import
+- Maybe more.
+
 
 ## Description
 
-A decorator `@command` that applies a handy interface called the _Command Interface_ to its decorated function. The _Command Interface_ allows you:
+A decorator `@command` that applies a handy interface called the _Command Interface_ (thus `cmdi`) to its decorated function. The _Command Interface_ allows you:
 
 - to save/redirect/mute output streams (stdout/stderr) for its decorated function. This works on file descriptor level. It's possible to redirect output of subprocesses and C code as well.
 - to catch exceptions for its decorated function and return them with the `CmdResult()`, including _return codes_, _error messages_ and colored _status messages_.
@@ -33,40 +57,44 @@ pip install cmdi
 Use the `@command` decorator to apply the _command interface_ to a function.
 
 ```python
-from cmdi import command
+from cmdi import command, CmdArgs
+from typing import Unpack
 
 @command
-def foo_cmd(x, **cmdargs) -> int:
-    print(x)
-    return x * 2
+def my_square_cmd(x, **cmdargs: Unpack[CmdArgs]) -> int:
+    y = x * x
+    print(f"Square: {y}")
+    return y
 ```
 
-Now you can use `foo_cmd` as a `command`:
+Now you can use `my_square_cmd` as a `command`:
 
 ```python
-result = foo_cmd(10)
+result = foo_cmd(2)
 ```
 
 Which will print the following output (in color):
 
 ```
-Cmd: foo_cmd
+Cmd: my_square_cmd
 ------------
-10
-foo_cmd: Ok
+Square: 4
+my_square_cmd: Ok
 ```
 
 and return a `CmdResult` object:
 
 ```python
 CmdResult(
-    val=20,
+    value=4,
     code=0,
-    name='foo_cmd',
+    name='square_cmd',
     status=Status.ok,
     color=StatusColor.green,
-    stdout=None,
-    stderr=None
+    stdout="",
+    stderr="",
+    stdout_b=b"",
+    stderr_b=b"",
 )
 ```
 
@@ -75,18 +103,27 @@ CmdResult(
 
 You can define the behavior of a command function using a set of special keyword arguments that are applied to the decorated function.
 
-In this example we redirect the output of `foo_cmd` to an in-memory file writer and catch exceptions. The output and information of the exception are then returned with the `CmdResult()` object:
+In this example we redirect the output of `my_square_cmd` to an in-memory file writer and catch exceptions. The output and information of the exception are then returned with the `CmdResult()` object:
 
 ```python
-from cmdi import CmdResult, Pipe
+from cmdi import command, CmdArgs, Pipe, CmdResult
+from typing import Unpack
+
+@command
+def my_square_cmd(x, **cmdargs: Unpack[CmdArgs]) -> int:
+    y = x * x
+    print(f"Square: {y}")
+    return y
 
 
-result = foo_cmd(10, _stdout=Pipe(), _catch_err=True)
+result = my_square_cmd(2, _stdout=Pipe(), _catch_err=True)
 
 isinstance(result, CmdResult) # True
 
-print(result.stdout) # prints caught output.
+print(result.stdout) # prints 'Square: 4'
 ```
+
+You can use the following special arguments: `_catch_err`, `_verbose`, `_color`, `_stdout=Pipe(...)`, `_stderr=Pipe(...)`, to control the status messages/formatting and handle stdout and stderr for the decorated function. `Pipes` allow you to mute, and redirect the standard- and error-output of a function in many ways. 
 
 More about special keyword arguments can be found in the API documentation below.
 
@@ -97,7 +134,7 @@ A command always returns a `CmdResult` object, for which the `@command` wrapper 
 
 ```python
 @command
-def foo_cmd(x: str, **cmdargs) -> CmdResult:
+def my_foo_cmd(x: str, **cmdargs: Unpack[CmdArgs]) -> CmdResult:
 
     print(x)
     somestr = "foo" + x
@@ -123,33 +160,88 @@ def foo_cmd(x: str, **cmdargs) -> CmdResult:
 Sometimes you want to use the _Command Interface_ for an existing function, without touching the function definition. You can do so by creating a _Command Interface Function Wrapper_:
 
 ```python
-from cmdi import command, strip_cmdargs, CmdResult
+from cmdi import command, CmdArgs, strip_cmdargs, CmdResult, Pipe
+from typing import Unpack
+
+# The original (untouched) function that is being wrapped:
+
+def foo(x: int) -> int:
+    print(f"Given Value: {x}")
+    return x * 2
 
 # This function wraps the Command Interface around an existing function:
 
 @command
-def foo_cmd(x, **cmdargs) -> CmdResult:
+def foo_cmd(x: int, **cmdargs: Unpack[CmdArgs]) -> int:
     return foo(**strip_cmdargs(loclas()))
 
 
-# The original function that is being wrapped:
+result = foo_cmd(2, _stdout=Pipe())
 
-def foo(x) -> int:
-    print(x)
-    return x * 2
+
+isinstance(result, CmdResult) # True
+print(result.stdout) # Given Value: 2
+print(result.value) # 4
+```
+
+This way you can easily create powerful wrappers for existing functions, without touching them.
+
+
+### Command Interface Function Wrappers and `subprocess`
+
+The command interface plays nicely with subprocesses.
+In this example we wrap a function which calls some subprocesses with `check=True`.
+We can now catch the returncode automatically on failure and return it with the `CmdResult`
+
+
+``` python
+import subprocess as sp
+from cmdi import command, CmdArgs, strip_cmdargs, CmdResult, Pipe
+from typing import Unpack
+
+
+def my_subprocess_calling_func(my_arg: str) -> int:
+    print("Running Command 1")
+    sp.run(["my_cmd_1", my_arg], check=True)
+    # Do other stuff
+
+    print("Running Command 2")
+    result = sp.run(["my_cmd_1", ...], check=True)
+    # do things with result...
+    # etc
+    some_val: str = ...
+
+    return some_val
+
+    
+@command
+def my_subprocess_calling_func_cmd(my_arg:, **cmdargs: Unpack[CmdArgs]) -> str:
+    return my_subprocess_calling_func(**strip_cmdargs(loclas()))
+
+result = my_subprocess_calling_func_cmd("my_arg", _stderr=Pipe(text=False))
+
+# If a process fails with returncode 32 and logs some errors we will get:
+isinstance(result, CmdResult) # True
+print(result.code) # 32
+print(result.stderr_b) # b"Error output"
+
 ```
 
 
-### Command Interface Function Wrappers and `subprocess` return codes.
-
-If you need to create a _Command Interface Function Wrapper_ for an existing function that runs a `subprocess` and your command depends on the `returncode` of that, you can use the `subprocess.CalledProcessError` exception to compose something. E.g.:
+If you need to create a _command wrapper_ for an existing function that runs a `subprocess` and your command depends on the `returncode` of that, you can use the `subprocess.CalledProcessError` exception to compose something. E.g.:
 
 ```python
 import subprocess as sp
-from cmdi import command, CmdResult, Status
+from cmdi import command, CmdResult, Status, CmdArgs
+from typing import Unpack
+
+
+def foo(x) -> int:
+    return sp.run(["my_arg"], check=True, ...)
+
 
 @command
-def foo_cmd(x, **cmdargs) -> CmdResult:
+def foo_cmd(x: str, **cmdargs: Unpack[CmdArgs]) -> CmdResult:
 
     try:
         return foo(**strip_cmdargs(locals()))
@@ -170,8 +262,6 @@ def foo_cmd(x, **cmdargs) -> CmdResult:
             raise sp.CalledProcessError(e.returncode, e.args)
 
 
-def foo(x) -> int:
-    return sp.run(["my_arg"], check=True, ...)
 
 ```
 
