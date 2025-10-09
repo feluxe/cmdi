@@ -22,7 +22,31 @@ Other Changes:
 - Removed wildcard imports.
 - And maybe more.
 
-# Can you generate a simple index with links to the sections ai!
+## Index
+
+- [Release 3.0.0 (October 09, 2025)](#release-300-october-09-2025)
+- [Description](#description)
+- [Requirements](#requirements)
+- [Install](#install)
+- [Usage](#usage)
+  - [The @command decorator](#the-command-decorator)
+  - [Command Function Arguments](#command-function-arguments)
+  - [Customizing the Result of a Command Function](#customizing-the-result-of-a-command-function)
+  - [Command Interface Function Wrappers](#command-interface-function-wrappers)
+  - [Command Interface Wrappers for Functions Using subprocess](#command-interface-wrappers-for-functions-using-subprocess)
+- [API](#api)
+  - [The @command Decorator](#the-command-decorator-1)
+  - [class CmdResult](#class-cmdresult)
+  - [class Pipe](#class-pipe)
+  - [Redirecting Output from Subprocesses and External/C Code](#redirecting-output-from-subprocesses-and-externalc-code)
+  - [function strip_cmdargs(locals_)](#function-strip_cmdargslocals_)
+  - [function print_title(result, color=True, file=None)](#function-print_titleresult-colortrue-filenone)
+  - [function print_status(result, color=True, file=None)](#function-print_statusresult-colortrue-filenone)
+  - [function print_result(result, color=True, file=None)](#function-print_resultresult-colortrue-filenone)
+  - [function print_summary(results, color=True, headline=True, file=None)](#function-print_summaryresults-colortrue-headlinetrue-filenone)
+  - [function read_popen_pipes(p, interval=10)](#function-read_popen_pipesp-interval10)
+- [Development & Testing](#development--testing)
+  - [Running Tests](#running-tests)
 
 ## Description
 
