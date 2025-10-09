@@ -22,6 +22,7 @@ Other Changes:
 - Removed wildcard imports.
 - And maybe more.
 
+# Can you generate a simple index with links to the sections ai!
 
 ## Description
 
