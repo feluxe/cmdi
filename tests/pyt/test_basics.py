@@ -1,11 +1,10 @@
 # from cmdinter import run_cmd, CmdFuncResult, CmdResult, Status
-import sys
-import io
-import cmdi
-from cmdi import command, CmdResult, Pipe, print_summary, Status
-from sty import fg, rs
+from sty import fg
 
-from ..helpers import print_stdout_stderr, cmd_print_stdout_stderr, _status, _title
+from cmdi import CmdResult, Status, print_summary
+from cmdi.lib import StatusColor
+
+from ..helpers import cmd_print_stdout_stderr, status, title
 
 
 def test_return_type():
@@ -15,17 +14,17 @@ def test_return_type():
 
 def test_return_val_none():
     cr = cmd_print_stdout_stderr()
-    assert cr.val is None
+    assert cr.value is None
 
 
 def test_return_val_str():
     cr = cmd_print_stdout_stderr(return_val="foo")
-    assert cr.val == "foo"
+    assert cr.value == "foo"
 
 
 def test_return_val_int():
     cr = cmd_print_stdout_stderr(return_val=1)
-    assert cr.val == 1
+    assert cr.value == 1
 
 
 def test_return_status_ok():
@@ -39,39 +38,39 @@ def test_return_status_error():
 
 
 def test_print_stdout_stderr(capfd):
-    cr = cmd_print_stdout_stderr()
+    _cr = cmd_print_stdout_stderr()
 
     stdout, stderr = capfd.readouterr()
 
     # Test stdout.
     assert (
-        _title(
+        title(
             cmd_print_stdout_stderr.__name__,
         )
         in stdout
     )
     assert "stdout_text\n" in stdout
-    assert _status(cmd_print_stdout_stderr.__name__) in stdout
+    assert status(cmd_print_stdout_stderr.__name__) in stdout
 
     # Test stderr.
     assert "stderr_text\n" in stderr
 
 
 def test_verbose_true(capfd):
-    cr = cmd_print_stdout_stderr(verbose=True)
+    _cr = cmd_print_stdout_stderr(_verbose=True)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
 
     # Check stdout and stderr.
-    assert _title(cmd_print_stdout_stderr.__name__) in stdout
+    assert title(cmd_print_stdout_stderr.__name__) in stdout
     assert "stdout_text\n" in stdout
-    assert _status(cmd_print_stdout_stderr.__name__) in stdout
+    assert status(cmd_print_stdout_stderr.__name__) in stdout
 
 
 def test_verbose_false(capfd):
-    cr = cmd_print_stdout_stderr(_verbose=False)
+    _cr = cmd_print_stdout_stderr(_verbose=False)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
 
     # Check stdout and stderr.
     assert fg.cyan not in stdout
@@ -80,9 +79,9 @@ def test_verbose_false(capfd):
 
 
 def test_color_true(capfd):
-    cr = cmd_print_stdout_stderr(_color=True)
+    _cr = cmd_print_stdout_stderr(_color=True)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
 
     # Check stdout and stderr.
     assert fg.cyan in stdout
@@ -91,9 +90,9 @@ def test_color_true(capfd):
 
 
 def test_color_false(capfd):
-    cr = cmd_print_stdout_stderr(_color=False)
+    _cr = cmd_print_stdout_stderr(_color=False)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
 
     # Check stdout and stderr.
     assert fg.cyan not in stdout
@@ -103,23 +102,31 @@ def test_color_false(capfd):
 
 def test_return_out_none(capfd):
     cr = cmd_print_stdout_stderr("foo")
-    assert cr.stdout is None
+    assert cr.stdout == ""
+    assert cr.stdout_b == b""
 
 
 def test_return_err_none(capfd):
     cr = cmd_print_stdout_stderr("foo")
-    assert cr.stderr is None
+    assert cr.stderr == ""
+    assert cr.stderr_b == b""
 
 
 def test_print_summary(capfd):
     result = CmdResult(
-        val="foo", code=1, name="foo", status="Error", color=1, stdout=None, stderr=None
+        value="foo",
+        code=1,
+        name="foo",
+        status=Status.error,
+        color=StatusColor.red,
+        stdout="",
+        stderr="",
     )
 
     print_summary(result, color=False)
     print_summary([result, result, None], color=False)
 
-    stdout, stderr = capfd.readouterr()
+    stdout, _stderr = capfd.readouterr()
 
     assert "Summary\n-------\nfoo: Error" in stdout
     assert "Summary\n-------\nfoo: Error\nfoo: Error" in stdout

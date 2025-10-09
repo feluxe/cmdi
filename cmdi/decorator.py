@@ -1,83 +1,100 @@
 import io
 import subprocess as sp
 import sys
+from contextlib import _GeneratorContextManager
 from copy import deepcopy
-from dataclasses import dataclass
 from functools import wraps
-from typing import IO, Any, Callable, Optional, TypeVar
+from typing import (
+    IO,
+    Callable,
+    Literal,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
+
+from typing_extensions import ParamSpec
 
 from cmdi.lib import (
+    STDOUT,
     CmdResult,
+    Pipe,
     Status,
     StatusColor,
-    print_status,
+    Std,
     _print_title,
+    print_status,
 )
-from cmdi.redirector import _STD, no_redirector, redirect_stdfiles
-
-STDOUT = _STD.OUT
+from cmdi.redirector import no_redirector, redirect_stdfiles
 
 
-@dataclass
-class Pipe:
-    save: bool = True
-    text: bool = True
-    dup: bool = False
-    tty: bool = False
-    mute: bool = False
+def _get_std(
+    std: Union[Pipe, Literal[Std.OUT], None],
+) -> Tuple[Union[Pipe, None], Union[IO, None]]:
+    if not isinstance(std, Pipe):
+        return (None, None)
 
+    if not std.save:
+        return (std, None)
 
-def _get_logfile(args) -> Optional[IO]:
-    if not args:
-        return None
-
-    if not args.save:
-        return None
-
-    if args.text:
-        return io.StringIO()
+    if std.text:
+        return (std, io.StringIO())
     else:
-        return io.BytesIO()
+        return (std, io.BytesIO())
 
 
-def _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
+def _get_redirector(
+    stdout_pipe: Optional[Pipe],
+    stdout_file: Optional[IO],
+    stderr_pipe: Optional[Pipe],
+    stderr_file: Optional[IO],
+) -> _GeneratorContextManager[None, None, None]:
     if not stdout_pipe and not stderr_pipe:
         return no_redirector()
     else:
-        return redirect_stdfiles(
-            stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile
-        )
+        return redirect_stdfiles(stdout_pipe, stdout_file, stderr_pipe, stderr_file)
 
 
-T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def command(decorated_func: Callable[..., T]) -> Callable[..., CmdResult[T]]:
+def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
     """
     The @command decorator that turns a function into a command.
     """
 
     @wraps(decorated_func)
-    def command_wrapper(*args, **kwargs) -> CmdResult:
-        # Set default parameters.
+    def command_wrapper(
+        *args,
+        _catch_err: bool = True,
+        _verbose: bool = True,
+        _color: bool = True,
+        _stdout: Union[Pipe, None] = None,
+        _stderr: Union[Pipe, Literal[Std.OUT], None] = None,
+        **kwargs,
+    ) -> CmdResult[R]:
+        """"""
+
         name = decorated_func.__name__
-        catch_err = kwargs.get("_catch_err", True)
-        verbose = kwargs.get("_verbose", True)
-        colorful = kwargs.get("_color", True)
-        stdout_pipe = kwargs.get("_stdout")
-        stderr_pipe = kwargs.get("_stderr")
+        catch_err = _catch_err
+        verbose = _verbose
+        colorful = _color
 
         if verbose:
             _print_title(name, color=colorful)
 
-        stdout_logfile = _get_logfile(stdout_pipe)
-        if stderr_pipe == _STD.OUT:
-            stderr_logfile = stdout_logfile
-            stderr_pipe = deepcopy(stdout_pipe)
-        else:
-            stderr_logfile = _get_logfile(stderr_pipe)
+        stdout_pipe, stdout_file = _get_std(_stdout)
 
-        with _get_redirector(stdout_pipe, stdout_logfile, stderr_pipe, stderr_logfile):
+        if _stderr == STDOUT:
+            # Write into the same file as stdout
+            stderr_pipe = deepcopy(stdout_pipe) if stdout_pipe else None
+            stderr_file = stdout_file
+        else:
+            stderr_pipe, stderr_file = _get_std(_stderr)
+
+        with _get_redirector(stdout_pipe, stdout_file, stderr_pipe, stderr_file):
             try:
                 cleaned_kwargs = {
                     k: v
@@ -85,68 +102,69 @@ def command(decorated_func: Callable[..., T]) -> Callable[..., CmdResult[T]]:
                     if k
                     not in ["_stdout", "_stderr", "_catch_err", "_verbose", "_color"]
                 }
-
                 item = decorated_func(*args, **cleaned_kwargs)
-                # item = decorated_func(*args, **kwargs)
 
                 # If the user returns a CustomCmdResult, we take it and
                 # apply default values if necessary.
                 if isinstance(item, CmdResult):
-                    val = item.val
+                    value = item.value
                     code = item.code or 0
                     name = item.name or name
+                    status = item.status if hasattr(item, "status") else Status.ok
+                    color = item.color if hasattr(item, "color") else StatusColor.green
 
                     result = CmdResult(
-                        val=val,
+                        value=value,
                         code=code,
                         name=name,
+                        status=status,
+                        color=color,
                     )
-
                 # If the return type is none of CmdResult/CustomCmdResult,
                 # we wrap the default CmdResult around the return value.
                 else:
                     result = CmdResult(
-                        val=item,
+                        value=item,
                         code=0,
                         name=name,
                         status=Status.ok,
                         color=StatusColor.green,
                     )
-
             except sp.CalledProcessError as e:
                 if e.stderr:
                     print(e.stderr, file=sys.stderr)
-
                 if not catch_err:
                     raise e
-
                 result = CmdResult(
-                    val=None,
+                    value=None,
                     code=e.returncode,
                     name=name,
                     status=Status.error,
                     color=StatusColor.red,
                 )
-
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:
                 print(e, file=sys.stderr)
-
                 if not catch_err:
                     sys.exit(1)
-
                 result = CmdResult(
-                    val=None,
+                    value=None,
                     code=1,
                     name=name,
                     status=Status.error,
                     color=StatusColor.red,
                 )
 
-        if isinstance(stdout_logfile, (io.StringIO, io.BytesIO)):
-            result.stdout = stdout_logfile.getvalue()
-        if isinstance(stderr_logfile, (io.StringIO, io.BytesIO)):
-            if not kwargs.get("_stderr") == _STD.OUT:
-                result.stderr = stderr_logfile.getvalue()
+        if isinstance(stdout_file, io.StringIO):
+            result.stdout = stdout_file.getvalue()
+        elif isinstance(stdout_file, io.BytesIO):
+            result.stdout_b = stdout_file.getvalue()
+
+        if isinstance(stderr_file, io.StringIO):
+            if not _stderr == STDOUT:
+                result.stderr = stderr_file.getvalue()
+        elif isinstance(stderr_file, io.BytesIO):
+            if not _stderr == STDOUT:
+                result.stderr_b = stderr_file.getvalue()
 
         if verbose:
             print_status(
@@ -154,6 +172,23 @@ def command(decorated_func: Callable[..., T]) -> Callable[..., CmdResult[T]]:
                 color=colorful,
             )
 
-        return result
+        # NOTE: The type for 'result.val' could be 'None' here instead of 'R'.
+        # We ignore this and trade convenience for safty here. The user should
+        # check and handle 'result.code' or use '_catch_err=False' before reading
+        # 'result.value'.
+        #
+        # We prefer this:
+        #
+        #  if result.code != 0:
+        #     handle error...
+        #  foo = result.val
+        #
+        # Over this:
+        #
+        # if result.code != 0:
+        #     handle error...
+        # foo = result.value if resul.value else ""
+        #
+        return result  # type: ignore
 
     return command_wrapper

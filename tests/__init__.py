@@ -1,14 +1,15 @@
-import pytest
-import sys
 import subprocess as sp
+import sys
+
+import pytest
 
 
 def run_tests():
-    result = pytest.main(['tests/pyt', '-x', '-v', '--capture', 'no'])
+    result = pytest.main(["tests/pyt", "-x", "-v", "--capture", "no"])
 
     if result > 0:
         sys.exit()
 
     # Run visual tests
 
-    sp.run(['python', 'tests/test_visuals.py'])
+    sp.run(["python", "tests/test_visuals.py"])
