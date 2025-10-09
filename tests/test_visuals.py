@@ -2,14 +2,19 @@ import sys
 
 sys.path.insert(0, ".")
 import io
-from cmdi import CmdResult, command, Pipe
-from sty import fg
 from concurrent.futures import (
     ProcessPoolExecutor as Executor,
+)
+from concurrent.futures import (
     as_completed,
+)
+from concurrent.futures import (
     wait as f_wait,
 )
 
+from sty import fg
+
+from cmdi import CmdResult, Pipe, command
 from tests.helpers import cmd_print_stdout_stderr
 
 # HELPERS
@@ -17,7 +22,7 @@ from tests.helpers import cmd_print_stdout_stderr
 
 
 def print_testname(name, label=""):
-    print(f'{fg.li_magenta}\n\n{name} {label}\n{"="*50}{fg.rs}')
+    print(f"{fg.li_magenta}\n\n{name} {label}\n{'=' * 50}{fg.rs}")
 
 
 def print_flag(string):
@@ -59,16 +64,16 @@ def test_stdout_stderr():
 
     cr = cmd_print_stdout_stderr(return_val="foo")
 
-    print_result_flag("val")
+    print_result_flag("value")
     print_msg("* Should be `foo`")
-    print(cr.val)
+    print(cr.value)
 
 
 test_stdout_stderr()
 
 
-def test_pipe_dup_save_text_tty():
-    print_testname(test_pipe_dup_save_text_tty.__name__)
+def test_pipe_fd_save_text_tty():
+    print_testname(test_pipe_fd_save_text_tty.__name__)
 
     print_runtime_flag()
     print_msg("* Should be in color.")
@@ -76,7 +81,7 @@ def test_pipe_dup_save_text_tty():
     print_msg("* Should contain stdout and stderr messages.")
     print_msg("* Should contain stdout and stderr of subprocess as well.")
 
-    p = Pipe(dup=True, save=True, tty=True, text=True)
+    p = Pipe(fd=True, save=True, tty=True, text=True)
 
     cr = cmd_print_stdout_stderr(return_val="foo", with_sub=True, _stdout=p, _stderr=p)
 
@@ -91,16 +96,16 @@ def test_pipe_dup_save_text_tty():
     print(cr.stderr)
 
 
-test_pipe_dup_save_text_tty()
+test_pipe_fd_save_text_tty()
 
 
-def test_pipe_dup_mute():
-    print_testname(test_pipe_dup_mute.__name__)
+def test_pipe_fd_mute():
+    print_testname(test_pipe_fd_mute.__name__)
 
     print_runtime_flag()
     print_msg("* Should only show title and status in color.")
 
-    p = Pipe(dup=True, save=True, tty=True, text=True, mute=True)
+    p = Pipe(fd=True, save=True, tty=True, text=True, mute=True)
 
     cr = cmd_print_stdout_stderr(return_val="foo", with_sub=True, _stdout=p, _stderr=p)
 
@@ -115,7 +120,7 @@ def test_pipe_dup_mute():
     print(cr.stderr)
 
 
-test_pipe_dup_mute()
+test_pipe_fd_mute()
 
 
 def test_pickle():
@@ -126,7 +131,7 @@ def test_pickle():
     print_msg("* Should contain stdout and stderr messages.")
     print_msg("* Should contain stdout and stderr of subprocess as well.")
 
-    p = Pipe(dup=True, save=True, tty=True, text=True, mute=False)
+    p = Pipe(fd=True, save=True, tty=True, text=True, mute=False)
 
     with Executor() as excecutor:
         future = excecutor.submit(

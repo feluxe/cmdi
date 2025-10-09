@@ -1,5 +1,7 @@
 from sty import fg
-from cmdi import command
+from typing_extensions import Unpack
+
+from cmdi import CmdArgs, command
 
 print(fg.li_yellow)
 print("--------------------------------------------")
@@ -18,16 +20,16 @@ def lib_str_function(a: str) -> str:
 @command
 def cmd_lib_str_function(
     a: str,
-    **cmdargs,
+    **cmdargs: Unpack[CmdArgs],
 ) -> str:
-    return lib_str_function(a, **cmdargs)
+    return lib_str_function(a)
 
 
-def test_typing_generic_cmd_result_val_str():
+def test_typing_generic_cmd_result_value_str():
     result = cmd_lib_str_function("foo")
-    if result.val is not None:
-        # The type checker should know that result.val is of type string
-        print(result.val + "nice")
+    if result.value is not None:
+        # The type checker should know that result.value is of type string
+        print(result.value + "nice")
 
 
 def lib_int_function(a: int) -> int:
@@ -42,8 +44,8 @@ def cmd_lib_int_function(
     return lib_int_function(a, **cmdargs)
 
 
-def test_typing_generic_cmd_result_val_int():
+def test_typing_generic_cmd_result_value_int():
     result = cmd_lib_int_function(1)
-    if result.val is not None:
-        # The type checker should know that result.val is of type string
-        print(result.val + 3)
+    if result.value is not None:
+        # The type checker should know that result.value is of type string
+        print(result.value + 3)

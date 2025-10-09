@@ -1,16 +1,19 @@
-from cmdi import Pipe, STDOUT
 from sty import fg
 
-from ..helpers import cmd_print_stdout_stderr, _title, _status
+from cmdi import STDOUT, Pipe
 
-# Dup = False
+from ..helpers import cmd_print_stdout_stderr
+
+# Fd = False
 # -----------
 
 
 def test_tty_true(capfd):
-    p = Pipe(dup=False, save=True, mute=False, text=True, tty=True)
+    p = Pipe(fd=False, save=True, mute=False, text=True, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=False, _stdout=p, _stderr=p)
+
+    assert f"{fg.magenta}stdout_ansi_text{fg.rs}\n" in cr.stdout
 
     stdout, stderr = capfd.readouterr()
 
@@ -21,7 +24,7 @@ def test_tty_true(capfd):
 
 
 def test_tty_false(capfd):
-    p = Pipe(dup=False, save=True, mute=False, text=True, tty=False)
+    p = Pipe(fd=False, save=True, mute=False, text=True, tty=False)
 
     cr = cmd_print_stdout_stderr(with_sub=False, _stdout=p, _stderr=p)
 
@@ -29,12 +32,12 @@ def test_tty_false(capfd):
 
     assert f"{fg.magenta}stdout_ansi_text{fg.rs}\n" in stdout
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in stderr
-    assert f"stdout_ansi_text\n" in cr.stdout
-    assert f"stderr_ansi_text\n" in cr.stderr
+    assert "stdout_ansi_text\n" in cr.stdout
+    assert "stderr_ansi_text\n" in cr.stderr
 
 
 def test_text_true(capfd):
-    p = Pipe(dup=False, save=True, mute=False, text=True, tty=True)
+    p = Pipe(fd=False, save=True, mute=False, text=True, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=False, _stdout=p, _stderr=p)
 
@@ -47,7 +50,7 @@ def test_text_true(capfd):
 
 
 def test_text_false(capfd):
-    p = Pipe(dup=False, save=True, mute=False, text=False, tty=True)
+    p = Pipe(fd=False, save=True, mute=False, text=False, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=False, _stdout=p, _stderr=p)
 
@@ -55,12 +58,12 @@ def test_text_false(capfd):
 
     assert f"{fg.magenta}stdout_ansi_text{fg.rs}\n" in stdout
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in stderr
-    assert b"stdout_text" in cr.stdout
-    assert b"stderr_text" in cr.stderr
+    assert b"stdout_text" in cr.stdout_b
+    assert b"stderr_text" in cr.stderr_b
 
 
 def test_mute_true(capfd):
-    p = Pipe(dup=False, save=True, mute=True, text=True, tty=True)
+    p = Pipe(fd=False, save=True, mute=True, text=True, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=False, _stdout=p, _stderr=p, _verbose=False)
 
@@ -72,15 +75,15 @@ def test_mute_true(capfd):
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in cr.stderr
 
 
-# Dup = True
+# Fd = True
 # ----------
 # NOTE: Unfortunately capturing output via pytest's `capfd` conflicts with cmdi's
-# `dup=True`.
-# NOTE: You should also run pytest with --capture=no flag if you want to test dup=True.
+# `fd=True`.
+# NOTE: You should also run pytest with --capture=no flag if you want to test fd=True.
 
 
-def test_dup_subprocess_output_exists():
-    p = Pipe(dup=True, save=True, mute=False, text=True, tty=False)
+def test_fd_subprocess_output_exists():
+    p = Pipe(fd=True, save=True, mute=False, text=True, tty=False)
 
     cr = cmd_print_stdout_stderr(with_sub=True, _stdout=p, _stderr=p)
 
@@ -89,8 +92,8 @@ def test_dup_subprocess_output_exists():
     assert "subprocess: stderr_text" in cr.stderr
 
 
-def test_dup_tty_true(capfd):
-    p = Pipe(dup=True, save=True, mute=False, text=True, tty=True)
+def test_fd_tty_true(capfd):
+    p = Pipe(fd=True, save=True, mute=False, text=True, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=True, _stdout=p, _stderr=p)
 
@@ -102,8 +105,8 @@ def test_dup_tty_true(capfd):
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in cr.stderr
 
 
-def test_dup_tty_false(capfd):
-    p = Pipe(dup=True, save=True, mute=False, text=True, tty=False)
+def test_fd_tty_false(capfd):
+    p = Pipe(fd=True, save=True, mute=False, text=True, tty=False)
 
     cr = cmd_print_stdout_stderr(with_sub=True, _stdout=p, _stderr=p)
 
@@ -115,8 +118,8 @@ def test_dup_tty_false(capfd):
     assert f"stderr_ansi_text\n" in cr.stderr
 
 
-def test_dup_text_true(capfd):
-    p = Pipe(dup=True, save=True, mute=False, text=True, tty=True)
+def test_fd_text_true(capfd):
+    p = Pipe(fd=True, save=True, mute=False, text=True, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=True, _stdout=p, _stderr=p)
 
@@ -128,8 +131,8 @@ def test_dup_text_true(capfd):
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in cr.stderr
 
 
-def test_dup_text_false(capfd):
-    p = Pipe(dup=True, save=True, mute=False, text=False, tty=True)
+def test_fd_text_false(capfd):
+    p = Pipe(fd=True, save=True, mute=False, text=False, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=True, _stdout=p, _stderr=p)
 
@@ -137,15 +140,18 @@ def test_dup_text_false(capfd):
 
     assert f"{fg.magenta}stdout_ansi_text{fg.rs}\n" in stdout
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in stderr
-    assert b"stdout_text" in cr.stdout
-    assert b"stderr_text" in cr.stderr
+    assert cr.stdout == ""
+    assert cr.stderr == ""
+    assert b"stdout_text" in cr.stdout_b
+    assert b"stderr_text" in cr.stderr_b
 
 
 def test_redirect_stderr_to_stdout():
-    p = Pipe(dup=True, save=True, mute=False, text=True, tty=True)
+    p = Pipe(fd=True, save=True, mute=False, text=True, tty=True)
 
     cr = cmd_print_stdout_stderr(with_sub=True, _stdout=p, _stderr=STDOUT)
 
-    assert cr.stderr is None
+    assert cr.stderr == ""
+    assert cr.stderr_b == b""
     assert f"{fg.magenta}stdout_ansi_text{fg.rs}\n" in cr.stdout
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in cr.stdout

@@ -15,6 +15,7 @@ keywords = [ "command", "interface", "wrapper", "handler", "capture", "stdout", 
 
 [tool.poetry.dependencies]
 python = "^3.9"
+typing-extensions = "^4.15.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

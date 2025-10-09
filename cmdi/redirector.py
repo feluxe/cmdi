@@ -1,27 +1,21 @@
-import os
-import sys
-import pty
 import ctypes
 import fcntl
+import io
+import os
+import pty
 import re
-import time
+import sys
 import termios
+import time
+from contextlib import contextmanager
+from dataclasses import dataclass
+from io import FileIO
+from queue import Empty, Queue
 from select import select
 from threading import Thread
-from contextlib import contextmanager
-from queue import Queue, Empty
-from dataclasses import dataclass
-from enum import Enum
+from typing import IO, Any, Generator, Optional, TextIO, Tuple, Union
 
-from typing import Optional, IO, Union
-
-
-class _STD(Enum):
-    OUT = "stdout"
-    ERR = "stderr"
-
-
-STDOUT = _STD.OUT
+from cmdi.lib import Pipe, Std
 
 
 @dataclass
@@ -31,7 +25,7 @@ class _LowlevelRedirector:
     text: bool = False
     tty: bool = False
     mute: bool = False
-    logfile: Optional[IO] = None
+    logfile: Optional[Union[io.StringIO, io.BytesIO]] = None
     original_std_fd: Optional[int] = None
     master_fd: Optional[int] = None
     master_file: Optional[IO] = None
@@ -41,23 +35,25 @@ class _LowlevelRedirector:
 
 @dataclass
 class _HighlevelRedirector:
-    file: Optional[IO] = None
+    file: Optional[Union[io.StringIO, io.BytesIO]] = None
 
 
-libc = ctypes.CDLL(None)  # type: ignore
+libc = ctypes.CDLL(None)
 c_stdout = ctypes.c_void_p.in_dll(libc, "stdout")
 c_stderr = ctypes.c_void_p.in_dll(libc, "stderr")
 
 
-def flush_c(stdtype: _STD):
-    if stdtype == _STD.OUT:
+def flush_c(stdtype: Std) -> None:
+    if stdtype == Std.OUT:
         libc.fflush(c_stdout)
     else:
         libc.fflush(c_stderr)
 
 
-def _setup_lowlevel_redirector(stdtype):
-    if stdtype == _STD.OUT:
+def _setup_lowlevel_redirector(
+    stdtype: Std,
+) -> Tuple[Union[int, Any], int, FileIO, int, FileIO]:
+    if stdtype == Std.OUT:
         stdfile = sys.stdout
     else:
         stdfile = sys.stderr
@@ -164,9 +160,12 @@ def _save_stream(
 
                     if stdout.text:
                         line = line.decode()
+                        if isinstance(stdout.logfile, io.StringIO):
+                            stdout.logfile.write(line)
+                    else:
+                        if isinstance(stdout.logfile, io.BytesIO):
+                            stdout.logfile.write(line)
 
-                    if stdout.logfile:
-                        stdout.logfile.write(line)
                 elif stderr:
                     if not stderr.mute and stderr.saved_std_file:
                         stderr.saved_std_file.write(line)
@@ -177,9 +176,11 @@ def _save_stream(
 
                     if stderr.text:
                         line = line.decode()
-
-                    if stderr.logfile:
-                        stderr.logfile.write(line)
+                        if isinstance(stderr.logfile, io.StringIO):
+                            stderr.logfile.write(line)
+                    else:
+                        if isinstance(stderr.logfile, io.BytesIO):
+                            stderr.logfile.write(line)
 
         try:
             queue.get(block=False)
@@ -190,11 +191,15 @@ def _save_stream(
         time.sleep(0.001)
 
 
-def _remove_lowlevel_redirector(stdtype, saved_stdfile_fd, original_stdfile_fd):
+def _remove_lowlevel_redirector(
+    stdtype: Std,
+    saved_stdfile_fd: int,
+    original_stdfile_fd: int,
+) -> None:
     # # Flush the C-level buffer to redirected std[out|err].
     flush_c(stdtype)
 
-    if stdtype == _STD.OUT:
+    if stdtype == Std.OUT:
         sys.stdout.flush()
     else:
         sys.stderr.flush()
@@ -203,35 +208,65 @@ def _remove_lowlevel_redirector(stdtype, saved_stdfile_fd, original_stdfile_fd):
     os.dup2(saved_stdfile_fd, original_stdfile_fd)
 
 
-import io
-
-
 class DuplexWriter:
     """
     This is a custom file writer, that writes to a StringIO and std[out|err] at the
     same time.
     """
 
-    def __init__(self, stdtype: _STD, logfile: IO, conf):
-        self.logfile = logfile
-        self.conf = conf
+    def __init__(
+        self,
+        stdtype: Optional[Std],
+        logfile: Optional[Union[io.StringIO, io.BytesIO]],
+        conf: Optional[Pipe],
+    ):
+        self.logfile_s: Optional[io.StringIO] = None
+        self.logfile_b: Optional[io.BytesIO] = None
 
-        if stdtype == _STD.OUT:
-            self.stdfile = sys.stdout
+        if isinstance(logfile, io.TextIOBase):
+            self.logfile_s = logfile
+        elif isinstance(logfile, io.BytesIO):
+            self.logfile_b = logfile
+
+        self.conf: Optional[Pipe] = conf
+
+        if stdtype == Std.OUT:
+            self.stdfile: TextIO = sys.stdout
         else:
-            self.stdfile = sys.stderr
+            self.stdfile: TextIO = sys.stderr
 
     def write(self, s):
-        if not self.conf.mute:
+        if self.conf and not self.conf.mute:
             self.stdfile.write(s)
 
-        if not self.conf.tty:
+        if self.conf and not self.conf.tty:
             s = remove_ansi_str(s)
 
-        if not self.conf.text:
+        if self.conf and not self.conf.text:
             s = bytes(s, "utf-8")
 
-        self.logfile.write(s)
+            if self.logfile_b:
+                self.logfile_b.write(s)
+        else:
+            if self.logfile_s:
+                self.logfile_s.write(s)
+
+    def flush(self) -> None:
+        if not self.conf or not self.conf.mute:
+            self.stdfile.flush()
+        if self.logfile_s:
+            self.logfile_s.flush()
+        if self.logfile_b:
+            self.logfile_b.flush()
+
+
+def _close_redirector_files(redirector):
+    """Close file descriptors if they exist."""
+    if redirector:
+        if getattr(redirector, "master_file", None):
+            redirector.master_file.close()
+        if getattr(redirector, "saved_std_file", None):
+            redirector.saved_std_file.close()
 
 
 @contextmanager
@@ -240,13 +275,16 @@ def redirect_stdfiles(
     stdout_logfile=None,
     stderr_conf=None,
     stderr_logfile=None,
-):
+) -> Generator[None, None, None]:
+    """"""
     stdout_low = None
     stderr_low = None
     stdout_high = None
     stderr_high = None
+    queue = None
+    pty_stream_writer = None
 
-    if stdout_conf and stdout_conf.dup and (stdout_conf.save or stdout_conf.mute):
+    if stdout_conf and stdout_conf.fd and (stdout_conf.save or stdout_conf.mute):
         stdout_low = _LowlevelRedirector(
             save=stdout_conf.save,
             text=stdout_conf.text,
@@ -257,7 +295,7 @@ def redirect_stdfiles(
     elif stdout_conf and (stdout_conf.save or stdout_conf.mute):
         stdout_high = _HighlevelRedirector(stdout_logfile)
 
-    if stderr_conf and stderr_conf.dup and (stderr_conf.save or stderr_conf.mute):
+    if stderr_conf and stderr_conf.fd and (stderr_conf.save or stderr_conf.mute):
         stderr_low = _LowlevelRedirector(
             save=stderr_conf.save,
             text=stderr_conf.text,
@@ -270,7 +308,7 @@ def redirect_stdfiles(
 
     try:
         if stdout_low:
-            r = _setup_lowlevel_redirector(_STD.OUT)
+            r = _setup_lowlevel_redirector(Std.OUT)
             stdout_low.original_std_fd = r[0]
             stdout_low.master_fd = r[1]
             stdout_low.master_file = r[2]
@@ -278,10 +316,10 @@ def redirect_stdfiles(
             stdout_low.saved_std_file = r[4]
         elif stdout_high:
             # sys.stdout = stdout_high.file
-            sys.stdout = DuplexWriter(_STD.OUT, stdout_high.file, stdout_conf)
+            sys.stdout = DuplexWriter(Std.OUT, stdout_high.file, stdout_conf)
 
         if stderr_low:
-            r = _setup_lowlevel_redirector(_STD.ERR)
+            r = _setup_lowlevel_redirector(Std.ERR)
             stderr_low.original_std_fd = r[0]
             stderr_low.master_fd = r[1]
             stderr_low.master_file = r[2]
@@ -289,10 +327,10 @@ def redirect_stdfiles(
             stderr_low.saved_std_file = r[4]
         elif stderr_high:
             # sys.stderr = stderr_high.file
-            sys.stderr = DuplexWriter(_STD.ERR, stderr_high.file, stderr_conf)
+            sys.stderr = DuplexWriter(Std.ERR, stderr_high.file, stderr_conf)
 
         if stdout_low or stderr_low:
-            queue: Queue = Queue()
+            queue = Queue()
 
             pty_stream_writer = Thread(
                 target=_save_stream,
@@ -311,28 +349,26 @@ def redirect_stdfiles(
             sys.stderr = sys.__stderr__
 
         if stdout_low or stderr_low:
-            if stdout_low:
+            if stdout_low and stdout_low.saved_std_fd and stdout_low.original_std_fd:
                 _remove_lowlevel_redirector(
-                    _STD.OUT, stdout_low.saved_std_fd, stdout_low.original_std_fd
+                    Std.OUT, stdout_low.saved_std_fd, stdout_low.original_std_fd
                 )
 
-            if stderr_low:
+            if stderr_low and stderr_low.saved_std_fd and stderr_low.original_std_fd:
                 _remove_lowlevel_redirector(
-                    _STD.ERR, stderr_low.saved_std_fd, stderr_low.original_std_fd
+                    Std.ERR, stderr_low.saved_std_fd, stderr_low.original_std_fd
                 )
 
-            queue.put(1)  # Send stop signal.
-            pty_stream_writer.join()
+            if queue:
+                queue.put(1)  # Send stop signal.
 
-            if stdout_low:
-                stdout_low.master_file.close()
-                stdout_low.saved_std_file.close()
+            if pty_stream_writer:
+                pty_stream_writer.join()
 
-            if stderr_low:
-                stderr_low.master_file.close()
-                stderr_low.saved_std_file.close()
+            _close_redirector_files(stdout_low)
+            _close_redirector_files(stderr_low)
 
 
 @contextmanager
-def no_redirector():
+def no_redirector() -> Generator[None, None, None]:
     yield

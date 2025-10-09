@@ -13,34 +13,89 @@ A function that is decorated with `@command` can receive a set of sepcial keywor
 arguments (`_verbose=`, `_stdout=`, `_stderr=`, ...) and it always returns a `CmdResult()` object.
 
 """
+
 import io
 import subprocess as sp
 import sys
 import time
-from enum import Enum
-
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from enum import Enum
 from queue import Empty, Queue
 from typing import (
     IO,
     Any,
     Dict,
+    Generic,
     Iterable,
     Iterator,
     List,
+    Literal,
     Optional,
     Tuple,
-    Union,
+    TypedDict,
     TypeVar,
-    Generic,
+    Union,
 )
 
-# String Styling.
+from typing_extensions import NotRequired
+
+
+class Std(Enum):
+    OUT = "stdout"
+    ERR = "stderr"
+
+
+STDOUT = Std.OUT
+
+# Internal string styling.
 fg_cyan = "\x1b[36m"
 fg_green = "\x1b[32m"
 fg_yellow = "\x1b[33m"
 fg_red = "\x1b[31m"
 fg_rs = "\x1b[39m"
+
+
+@dataclass
+class Pipe:
+    """
+    Configuration flags for controlling stream redirection behavior.
+
+    Attributes:
+        save (bool): If True, save (buffer/record) the output to a log or memory.
+        text (bool): If True, decode bytes to text (str); if False, keep as bytes.
+        tty (bool): If True, treat the output stream as a TTY/terminal (keep ANSI codes).
+            If False, strip ANSI escape sequences.
+        mute (bool): If True, suppress output from appearing in the user's terminal.
+        fd (bool): If True, perform low-level file descriptor duplication/redirection
+            (e.g., using os.dup/os.dup2 with PTY support). Needed to capture output
+            from subprocesses and C extensions.
+    """
+
+    save: bool = True
+    text: bool = True
+    tty: bool = False
+    mute: bool = False
+    fd: bool = False
+
+
+class CmdArgs(TypedDict, total=False):
+    """
+    Configuration flags for handling a command.
+
+    Attributes:
+        _catch_err (bool): If True, runtine exceptions are cought and returned with CmdResult.
+        _verbose (bool): If True, status messages (like command title, results, etc.) will be printed.
+        _color (bool): If True, status messages will use colors.
+        _stdout (Pipe, None): Handle the command out. Allows muting, redirecting, saving of stdout/stderr (and more).
+        _stderr (Pipe, Std.Out, None): See _stdout. Use Std.Out or STDOUT to redirect stderr to stdout.
+    """
+
+    _catch_err: NotRequired[bool]
+    _verbose: NotRequired[bool]
+    _color: NotRequired[bool]
+    _stdout: NotRequired[Union[Pipe, None]]
+    _stderr: NotRequired[Union[Pipe, Literal[Std.OUT], None]]
 
 
 class Status(Enum):
@@ -83,7 +138,7 @@ def _set_status(status: Optional[Status], code: Optional[int]) -> Status:
         elif is_int:
             return Status.error
         else:
-            raise ValueError(f"Unknown return status.")
+            raise ValueError("Unknown return status.")
 
 
 def _set_color(color: Optional[StatusColor], status: Optional[Status]) -> StatusColor:
@@ -114,24 +169,28 @@ class CmdResult(Generic[T]):
 
     def __init__(
         self,
-        val: T,
+        value: T,
         code: int,
         name: Optional[str],
         status: Optional[Status],
         color: Optional[StatusColor],
-        stdout: Optional[Union[str, bytes]] = None,
-        stderr: Optional[Union[str, bytes]] = None,
+        stdout: str = "",
+        stderr: str = "",
+        stdout_b: bytes = b"",
+        stderr_b: bytes = b"",
     ):
         status = _set_status(status, code)
         color = _set_color(color, status)
 
-        self.val: T = val
+        self.value: T = value
         self.code: int = code
         self.name: Optional[str] = name
         self.status: Status = status
         self.color: StatusColor = color
-        self.stdout: Optional[Union[str, bytes]] = stdout
-        self.stderr: Optional[Union[str, bytes]] = stderr
+        self.stdout: str = stdout
+        self.stderr: str = stderr
+        self.stdout_b: bytes = stdout_b
+        self.stderr_b: bytes = stderr_b
 
 
 def strip_cmdargs(locals_: Dict[str, Any]) -> Dict[str, Any]:
@@ -216,11 +275,6 @@ def print_status(
       my_cmd: Ok
 
     """
-    if not isinstance(result, CmdResult):
-        raise TypeError(
-            f'Error: param "result" must be of type: "CmdResult" but it is of type: {type(result)}'
-        )
-
     r = result
     f = file or sys.stdout
 
@@ -309,9 +363,7 @@ def print_summary(
     if isinstance(results, CmdResult):
         print_status(results, color=color, file=f)
 
-    elif isinstance(
-        results, Iterable
-    ):  # pylint: disable=isinstance-second-argument-not-valid-type
+    elif isinstance(results, Iterable):
         for item in results:
             print_summary(item, color=color, headline=False, file=f)
 
@@ -329,25 +381,50 @@ def read_popen_pipes(
     p: sp.Popen,
     interval: int = 0,
 ) -> Iterator[Tuple[str, str]]:
-    with ThreadPoolExecutor(2) as pool:
-        q_stdout: Queue = Queue()
-        q_stderr: Queue = Queue()
+    """
+    Read the ouput of 'Popen' for both stdout and stderr in real time line by line.
+    This returns an Iterator which gives you a tuple like this:
+        (out_str, err_str)
+    """
+    # Determine how many threads we need based on available streams
+    threads_needed = sum([p.stdout is not None, p.stderr is not None])
 
-        pool.submit(_enqueue_output, p.stdout, q_stdout)
-        pool.submit(_enqueue_output, p.stderr, q_stderr)
+    # If no streams are available, just wait for process to complete
+    if threads_needed == 0:
+        while p.poll() is None:
+            yield ("", "")
+            time.sleep(interval / 1000)
+        return
+
+    with ThreadPoolExecutor(threads_needed) as pool:
+        q_stdout: Optional[Queue] = Queue() if p.stdout else None
+        q_stderr: Optional[Queue] = Queue() if p.stderr else None
+
+        if p.stdout and q_stdout is not None:
+            pool.submit(_enqueue_output, p.stdout, q_stdout)
+        if p.stderr and q_stderr is not None:
+            pool.submit(_enqueue_output, p.stderr, q_stderr)
 
         while True:
-            if p.poll() is not None and q_stdout.empty() and q_stderr.empty():
-                break
+            # Check if process is done and all queues are empty
+            if p.poll() is not None:
+                stdout_empty = q_stdout.empty() if q_stdout else True
+                stderr_empty = q_stderr.empty() if q_stderr else True
+                if stdout_empty and stderr_empty:
+                    break
 
             out_line = err_line = ""
+            try:
+                if q_stdout:
+                    out_line = q_stdout.get_nowait()
+            except Empty:
+                pass
 
             try:
-                out_line = q_stdout.get_nowait()
-                err_line = q_stderr.get_nowait()
+                if q_stderr:
+                    err_line = q_stderr.get_nowait()
             except Empty:
                 pass
 
             yield (out_line, err_line)
-
             time.sleep(interval / 1000)
