@@ -84,14 +84,14 @@ class CmdArgs(TypedDict, total=False):
     Configuration flags for handling a command.
 
     Attributes:
-        _catch_err (bool): If True, runtine exceptions are cought and returned with CmdResult.
+        _raise (bool): If True, runtine exceptions are raised.
         _verbose (bool): If True, status messages (like command title, results, etc.) will be printed.
         _color (bool): If True, status messages will use colors.
         _stdout (Pipe, None): Handle the command out. Allows muting, redirecting, saving of stdout/stderr (and more).
         _stderr (Pipe, Std.Out, None): See _stdout. Use Std.Out or STDOUT to redirect stderr to stdout.
     """
 
-    _catch_err: NotRequired[bool]
+    _raise: NotRequired[bool]
     _verbose: NotRequired[bool]
     _color: NotRequired[bool]
     _stdout: NotRequired[Union[Pipe, None]]
@@ -213,7 +213,7 @@ def strip_cmdargs(locals_: Dict[str, Any]) -> Dict[str, Any]:
         "_verbose",
         "_stdout",
         "_stderr",
-        "_catch_err",
+        "_raise",
         "_color",
     ]
 
