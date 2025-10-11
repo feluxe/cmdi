@@ -6,6 +6,7 @@ This is a major release with breaking changes. `cmdi` follows *semver*. If you d
 
 Breaking Changes:
 
+- Renamed `CmdArgs._catch_err` into `CmdArgs._raise.`
 - Renamed `Pipe.dup` to `Pipe.fd` for redirecting output at the file descriptor level.
 - Renamed `CmdResult.val` to `CmdResult.value`.
 - Improved `CmdResult` handling for `str` vs `bytes` output:
@@ -54,7 +55,7 @@ Other Changes:
 - Seamlessly capture, redirect, or mute standard output and error streams (stdout/stderr) at the file descriptor level (including output from subprocesses and C extensions).
 - Automatically catch exceptions and return structured results via the `CmdResult` object, which includes return codes, error messages, and color-coded status indicators.
 - Effortlessly print status messages and summaries for commands at runtime, making it easy to monitor and debug command execution.
-- Pass special keyword arguments (such as `_verbose`, `_stdout`, `_stderr`, `_catch_err`, and more) to control command behavior and output handling.
+- Pass special keyword arguments (such as `_verbose`, `_stdout`, `_stderr`, `_raise`, and more) to control command behavior and output handling.
 - Integrate with existing functions or subprocess-based workflows without modifying their core logic.
 
 By decorating a function with `@command`, you enable advanced output management, error handling, and result reporting—all with minimal code changes. The decorated function always returns a `CmdResult` object, providing a consistent and informative interface for downstream processing or user feedback.
@@ -151,7 +152,7 @@ def my_square_cmd(x: int, **cmdargs: Unpack[CmdArgs]) -> int:
     print(f"Square: {y}")
     return y
 
-result = my_square_cmd(2, _stdout=Pipe(), _catch_err=True)
+result = my_square_cmd(2, _stdout=Pipe(), _raise=False)
 
 assert isinstance(result, CmdResult)  # True
 
@@ -162,7 +163,7 @@ print(result.stdout)  # prints 'Square: 4'
 
 You can use the following special keyword arguments to control command behavior:
 
-- `_catch_err`: Catch exceptions and return error info in the result.
+- `_raise`: Raise exceptions and instead of returning error info in the result.
 - `_verbose`: Enable or disable printing of command headers and status.
 - `_color`: Enable or disable colored output.
 - `_stdout=Pipe(...)`: Redirect or capture standard output.
@@ -273,7 +274,7 @@ print(result.code)      # 32
 print(result.stderr_b)  # b"Error output"
 ```
 
-With this pattern, if any subprocess call fails (raises `CalledProcessError`), the command interface will catch it (if `_catch_err=True`) and populate the `CmdResult` with the return code and error output.
+With this pattern, if any subprocess call fails (raises `CalledProcessError`), the command interface will catch it (if `_raise=False`) and populate the `CmdResult` with the return code and error output.
 
 #### Advanced: Custom Handling of Subprocess Return Codes
 
@@ -379,21 +380,9 @@ from cmdi import STDOUT
 result = my_command_func('foo', _stdout=Pipe(), _stderr=STDOUT)
 ```
 
-#### `_catch_err: bool = True`
+#### `_raise: bool = False`
 
-Catches exceptions raised by the decorated function and returns error information in the `CmdResult` object, instead of raising the exception. The result will include error details in `result.stderr`, a nonzero `result.code`, and a red status message.
-
-**Example:**
-
-```python
-from cmdi import Pipe
-
-r = my_command_func("some_arg", _catch_err=True, _stderr=Pipe())
-
-print(r.status)   # Error
-print(r.code)     # 1
-print(r.stderr)   # The stderr output from the function call.
-```
+Raises exceptions instead of returning error information in the `CmdResult` object.
 
 
 ### class `CmdResult`
@@ -402,23 +391,23 @@ The `CmdResult` class is a structured result object returned by any function dec
 
 **Fields:**
 
-- `value: T`  
+- `value: T`
   The return value of the wrapped function.
-- `code: int`  
+- `code: int`
   The exit or return code (0 for success, nonzero for errors).
-- `name: str`  
+- `name: str`
   The command name (defaults to the function name).
-- `status: Optional[Status]`  
+- `status: Optional[Status]`
   The status of the command (e.g., `ok`, `error`, `skip`).
-- `color: Optional[StatusColor]`  
+- `color: Optional[StatusColor]`
   The color associated with the status (for terminal output).
-- `stdout: str`  
+- `stdout: str`
   Captured standard output (as text).
-- `stderr: str`  
+- `stderr: str`
   Captured standard error (as text).
-- `stdout_b: bytes`  
+- `stdout_b: bytes`
   Captured standard output (as bytes, if requested).
-- `stderr_b: bytes`  
+- `stderr_b: bytes`
   Captured standard error (as bytes, if requested).
 
 **Example:**
@@ -442,15 +431,15 @@ The `Pipe` class is used to configure how the standard output (`stdout`) and sta
 
 **Fields:**
 
-- `save: bool = True`  
+- `save: bool = True`
   If `True`, the output is captured and made available in the `CmdResult`. If `False`, output is not saved.
-- `text: bool = True`  
+- `text: bool = True`
   If `True`, output is captured as text (`str`). If `False`, output is captured as bytes (`bytes`).
-- `fd: bool = False`  
+- `fd: bool = False`
   If `True`, output is redirected at the file descriptor level (using `os.dup`). This is required to capture output from subprocesses or C code. (Previously called `dup`.)
-- `tty: bool = False`  
+- `tty: bool = False`
   If `True`, ANSI color sequences are preserved in the captured output. If `False`, they are stripped.
-- `mute: bool = False`  
+- `mute: bool = False`
   If `True`, output is not shown in the terminal during execution (but can still be saved and returned).
 
 **Example:**
@@ -461,7 +450,7 @@ from cmdi import CmdResult, Pipe
 out_pipe = Pipe(text=False, fd=True, mute=True)
 err_pipe = Pipe(text=False, fd=True, mute=False)
 
-result = foo_cmd(10, _stdout=out_pipe, _stderr=err_pipe, _catch_err=True)
+result = foo_cmd(10, _stdout=out_pipe, _stderr=err_pipe, _raise=False)
 
 print(result.stdout)  # prints captured output
 print(result.stderr)  # prints captured error output
@@ -490,16 +479,16 @@ This approach ensures that even output written directly to the OS-level file des
 
 ### function `strip_cmdargs(locals_)`
 
-Removes special command interface arguments (such as `_stdout`, `_stderr`, `_catch_err`, etc.) from a dictionary, typically `locals()`. This is useful when writing command wrappers that need to forward only the original function arguments, excluding cmdi-specific ones.
+Removes special command interface arguments (such as `_stdout`, `_stderr`, `_raise`, etc.) from a dictionary, typically `locals()`. This is useful when writing command wrappers that need to forward only the original function arguments, excluding cmdi-specific ones.
 
 **Parameters:**
 
-- `locals_ : Dict[str, Any]`  
+- `locals_ : Dict[str, Any]`
   The dictionary of local variables, usually from `locals()` inside a wrapper function.
 
 **Returns:**
 
-- `Dict[str, Any]`  
+- `Dict[str, Any]`
   A new dictionary with all command interface arguments removed.
 
 **Example:**
@@ -521,14 +510,14 @@ Prints a formatted title/header for a command result, typically showing the comm
 
 **Parameters:**
 
-- `result: CmdResult`  
+- `result: CmdResult`
   The command result object whose name will be displayed as the title.
-- `color: bool = True`  
+- `color: bool = True`
   Whether to use colored output for the title (default: `True`).
-- `file: Optional[IO[str]] = None`  
+- `file: Optional[IO[str]] = None`
   The file-like object to print to (default: `sys.stdout`).
 
-**Returns:**  
+**Returns:**
 None
 
 **Example:**
@@ -551,14 +540,14 @@ Prints the status line for a command result, typically showing the command name 
 
 **Parameters:**
 
-- `result: CmdResult`  
+- `result: CmdResult`
   The command result object whose status will be displayed.
-- `color: bool = True`  
+- `color: bool = True`
   Whether to use colored output for the status line (default: `True`).
-- `file: Optional[IO[str]] = None`  
+- `file: Optional[IO[str]] = None`
   The file-like object to print to (default: `sys.stdout`).
 
-**Returns:**  
+**Returns:**
 None
 
 **Example:**
@@ -580,14 +569,14 @@ Prints a full, formatted summary of a `CmdResult` object, including the command 
 
 **Parameters:**
 
-- `result: CmdResult`  
+- `result: CmdResult`
   The command result object to display.
-- `color: bool = True`  
+- `color: bool = True`
   Whether to use colored output for the result (default: `True`).
-- `file: Optional[IO[str]] = None`  
+- `file: Optional[IO[str]] = None`
   The file-like object to print to (default: `sys.stdout`).
 
-**Returns:**  
+**Returns:**
 None
 
 **Example:**
@@ -615,16 +604,16 @@ Prints a concise summary of one or more `CmdResult` objects, including command t
 
 **Parameters:**
 
-- `results: Union[Optional[CmdResult], List[Optional[CmdResult]]]`  
+- `results: Union[Optional[CmdResult], List[Optional[CmdResult]]]`
   A single `CmdResult` or a list of `CmdResult` objects to summarize.
-- `color: bool = True`  
+- `color: bool = True`
   Whether to use colored output for the summary (default: `True`).
-- `headline: bool = True`  
+- `headline: bool = True`
   Whether to print a headline/title for each command (default: `True`).
-- `file: Optional[IO[str]] = None`  
+- `file: Optional[IO[str]] = None`
   The file-like object to print to (default: `sys.stdout`).
 
-**Returns:**  
+**Returns:**
 None
 
 **Example:**
@@ -666,13 +655,13 @@ Provides a real-time iterator over the output of a running `subprocess.Popen` pr
 
 **Parameters:**
 
-- `p: subprocess.Popen`  
+- `p: subprocess.Popen`
   The running subprocess whose output you want to read.
-- `interval: int = 10`  
+- `interval: int = 10`
   The polling interval (in milliseconds) for reading output streams.
 
-**Returns:**  
-`Iterator[Tuple[str, str]]`  
+**Returns:**
+`Iterator[Tuple[str, str]]`
 Yields a tuple `(stdout_line, stderr_line)` for each line read from the process's output streams. If only one stream has new output, the other will be an empty string.
 
 **Example:**

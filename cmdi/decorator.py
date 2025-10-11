@@ -68,7 +68,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
     @wraps(decorated_func)
     def command_wrapper(
         *args,
-        _catch_err: bool = True,
+        _raise: bool = False,
         _verbose: bool = True,
         _color: bool = True,
         _stdout: Union[Pipe, None] = None,
@@ -78,7 +78,6 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
         """"""
 
         name = decorated_func.__name__
-        catch_err = _catch_err
         verbose = _verbose
         colorful = _color
 
@@ -99,8 +98,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
                 cleaned_kwargs = {
                     k: v
                     for k, v in kwargs.items()
-                    if k
-                    not in ["_stdout", "_stderr", "_catch_err", "_verbose", "_color"]
+                    if k not in ["_stdout", "_stderr", "_raise", "_verbose", "_color"]
                 }
                 item = decorated_func(*args, **cleaned_kwargs)
 
@@ -133,7 +131,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
             except sp.CalledProcessError as e:
                 if e.stderr:
                     print(e.stderr, file=sys.stderr)
-                if not catch_err:
+                if _raise:
                     raise e
                 result = CmdResult(
                     value=None,
@@ -144,7 +142,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
                 )
             except Exception as e:
                 print(e, file=sys.stderr)
-                if not catch_err:
+                if _raise:
                     sys.exit(1)
                 result = CmdResult(
                     value=None,
@@ -174,7 +172,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
 
         # NOTE: The type for 'result.val' could be 'None' here instead of 'R'.
         # We ignore this and trade convenience for safty here. The user should
-        # check and handle 'result.code' or use '_catch_err=False' before reading
+        # check and handle 'result.code' or use '_raise=True' before reading
         # 'result.value'.
         #
         # We prefer this:
