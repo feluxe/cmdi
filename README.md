@@ -184,7 +184,7 @@ from cmdi import command, CmdResult, CmdArgs
 from typing import Unpack
 
 @command
-def my_foo_cmd(x: str, **cmdargs: Unpack[CmdArgs]) -> CmdResult:
+def my_foo_cmd(x: str, **cmdargs: Unpack[CmdArgs]) -> CmdResult[str]:
     print(x)
     somestr = "foo" + x
 
@@ -289,7 +289,7 @@ def foo(x: str) -> int:
     return sp.run([x], check=True).returncode
 
 @command
-def foo_cmd(x: str, **cmdargs: Unpack[CmdArgs]) -> CmdResult:
+def foo_cmd(x: str, **cmdargs: Unpack[CmdArgs]) -> CmdResult[None]:
     try:
         return foo(**strip_cmdargs(locals()))
     except sp.CalledProcessError as e:
@@ -385,14 +385,14 @@ result = my_command_func('foo', _stdout=Pipe(), _stderr=STDOUT)
 Raises exceptions instead of returning error information in the `CmdResult` object.
 
 
-### class `CmdResult`
+### class `CmdResult[R]`
 
 The `CmdResult` class is a structured result object returned by any function decorated with `@command`. It provides a consistent interface for accessing the outcome, output, and status of a command.
 
 **Fields:**
 
-- `value: T`
-  The return value of the wrapped function.
+- `value: R`
+  The generic return value of the wrapped function.
 - `code: int`
   The exit or return code (0 for success, nonzero for errors).
 - `name: str`
@@ -468,7 +468,7 @@ import subprocess
 from cmdi import command, Pipe, CmdResult
 
 @command
-def foo(x, **cmdargs) -> CmdResult:
+def foo(x, **cmdargs) -> CmdResult[None]:
     subprocess.run("my_script")
 
 # Capture stdout from the function (including subprocess output) via low-level redirect:
