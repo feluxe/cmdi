@@ -60,7 +60,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
+def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[Optional[R]]]:
     """
     The @command decorator that turns a function into a command.
     """
@@ -74,7 +74,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
         _stdout: Union[Pipe, None] = None,
         _stderr: Union[Pipe, Literal[Std.OUT], None] = None,
         **kwargs,
-    ) -> CmdResult[R]:
+    ) -> CmdResult[Optional[R]]:
         """"""
 
         name = decorated_func.__name__
@@ -111,7 +111,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
                     status = item.status if hasattr(item, "status") else Status.ok
                     color = item.color if hasattr(item, "color") else StatusColor.green
 
-                    result = CmdResult(
+                    result: CmdResult[Optional[R]] = CmdResult(
                         value=value,
                         code=code,
                         name=name,
@@ -121,7 +121,7 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
                 # If the return type is none of CmdResult/CustomCmdResult,
                 # we wrap the default CmdResult around the return value.
                 else:
-                    result = CmdResult(
+                    result: CmdResult[Optional[R]] = CmdResult(
                         value=item,
                         code=0,
                         name=name,
@@ -170,23 +170,6 @@ def command(decorated_func: Callable[P, R]) -> Callable[P, CmdResult[R]]:
                 color=colorful,
             )
 
-        # NOTE: The type for 'result.val' could be 'None' here instead of 'R'.
-        # We ignore this and trade convenience for safty here. The user should
-        # check and handle 'result.code' or use '_raise=True' before reading
-        # 'result.value'.
-        #
-        # We prefer this:
-        #
-        #  if result.code != 0:
-        #     handle error...
-        #  foo = result.val
-        #
-        # Over this:
-        #
-        # if result.code != 0:
-        #     handle error...
-        # foo = result.value if resul.value else ""
-        #
-        return result  # type: ignore
+        return result
 
     return command_wrapper
