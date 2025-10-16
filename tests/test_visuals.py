@@ -1,20 +1,13 @@
 import sys
 
 sys.path.insert(0, ".")
-import io
 from concurrent.futures import (
     ProcessPoolExecutor as Executor,
-)
-from concurrent.futures import (
-    as_completed,
-)
-from concurrent.futures import (
-    wait as f_wait,
 )
 
 from sty import fg
 
-from cmdi import CmdResult, Pipe, command
+from cmdi import Pipe
 from tests.helpers import cmd_print_stdout_stderr
 
 # HELPERS
