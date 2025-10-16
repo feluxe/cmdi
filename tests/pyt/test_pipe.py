@@ -113,9 +113,9 @@ def test_fd_tty_false(capfd):
     stdout, stderr = capfd.readouterr()
 
     assert f"{fg.magenta}stdout_ansi_text{fg.rs}\n" in stdout
-    assert f"stdout_ansi_text\n" in cr.stdout
+    assert "stdout_ansi_text\n" in cr.stdout
     assert f"{fg.magenta}stderr_ansi_text{fg.rs}\n" in stderr
-    assert f"stderr_ansi_text\n" in cr.stderr
+    assert "stderr_ansi_text\n" in cr.stderr
 
 
 def test_fd_text_true(capfd):
