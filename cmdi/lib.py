@@ -31,6 +31,7 @@ from typing import (
     Iterator,
     List,
     Literal,
+    NoReturn,
     Optional,
     Tuple,
     TypedDict,
@@ -371,7 +372,9 @@ def print_summary(
         return
 
 
-def exit_with(result: Union[CmdResult, str], code_overwrite: Optional[int] = None):
+def exit_with(
+    result: Union[CmdResult, str], code_overwrite: Optional[int] = None
+) -> NoReturn:
     """Print stdout/stderr and exit with 'code'"""
 
     if isinstance(result, CmdResult):
