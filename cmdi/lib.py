@@ -371,28 +371,26 @@ def print_summary(
         return
 
 
-def exit_with(
-    cmd_result_or_str: Union[CmdResult, str], code_overwrite: Optional[int] = None
-):
+def exit_with(result: Union[CmdResult, str], code_overwrite: Optional[int] = None):
     """Print stdout/stderr and exit with 'code'"""
 
-    if isinstance(cmd_result_or_str, str):
-        if code_overwrite == 0 or code_overwrite is None:
-            print(code_overwrite)
-        else:
-            sys.stderr.write(cmd_result_or_str + "\n")
-        sys.exit(code_overwrite)
-    elif isinstance(cmd_result_or_str, CmdResult):
-        if cmd_result_or_str.stdout:
-            print(cmd_result_or_str.stdout)
-        if cmd_result_or_str.stdout_b:
-            print(cmd_result_or_str.stdout_b.decode())
-        if cmd_result_or_str.stderr:
-            sys.stderr.write(f"{cmd_result_or_str.stderr}\n")
-        if cmd_result_or_str.stderr_b:
-            sys.stderr.write(f"{cmd_result_or_str.stderr_b.decode()}\n")
-        code = code_overwrite if code_overwrite is not None else cmd_result_or_str.code
+    if isinstance(result, CmdResult):
+        if result.stdout:
+            print(result.stdout)
+        if result.stdout_b:
+            print(result.stdout_b.decode())
+        if result.stderr:
+            sys.stderr.write(f"{result.stderr}\n")
+        if result.stderr_b:
+            sys.stderr.write(f"{result.stderr_b.decode()}\n")
+        code = code_overwrite if code_overwrite is not None else result.code
         sys.exit(code)
+
+    if code_overwrite == 0 or code_overwrite is None:
+        print(result)
+    else:
+        sys.stderr.write(result + "\n")
+    sys.exit(code_overwrite)
 
 
 def _enqueue_output(file: IO[str], queue: Queue) -> None:
