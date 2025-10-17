@@ -5,6 +5,7 @@ from cmdi.lib import CmdResult as CmdResult
 from cmdi.lib import Pipe as Pipe
 from cmdi.lib import Status as Status
 from cmdi.lib import StatusColor as StatusColor
+from cmdi.lib import exit_with as exit_with
 from cmdi.lib import print_result as print_result
 from cmdi.lib import print_status as print_status
 from cmdi.lib import print_summary as print_summary
